@@ -3,8 +3,8 @@ package bstates
 import (
 	"testing"
 
-	"github.com/nayarsystems/idefix/libraries/buffer/buffer"
-	"github.com/nayarsystems/idefix/libraries/buffer/shuffling"
+	"github.com/nayarsystems/buffer/buffer"
+	"github.com/nayarsystems/buffer/shuffling"
 	"github.com/stretchr/testify/require"
 )
 

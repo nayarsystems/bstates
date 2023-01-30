@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jaracil/ei"
-	"github.com/nayarsystems/idefix/libraries/buffer/frame"
+	"github.com/nayarsystems/buffer/frame"
 )
 
 type State struct {

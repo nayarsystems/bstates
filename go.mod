@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd
-	github.com/nayarsystems/idefix/libraries/buffer v0.0.15
+	github.com/nayarsystems/buffer v0.0.1
 	github.com/stretchr/testify v1.8.1
 )
 

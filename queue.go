@@ -5,8 +5,8 @@ import (
 	"reflect"
 
 	"github.com/jaracil/ei"
-	"github.com/nayarsystems/idefix/libraries/buffer/buffer"
-	"github.com/nayarsystems/idefix/libraries/buffer/shuffling"
+	"github.com/nayarsystems/buffer/buffer"
+	"github.com/nayarsystems/buffer/shuffling"
 )
 
 type StateQueue struct {

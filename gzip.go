@@ -5,7 +5,7 @@ import (
 	"compress/gzip"
 	"io"
 
-	"github.com/nayarsystems/idefix/libraries/buffer/buffer"
+	"github.com/nayarsystems/buffer/buffer"
 )
 
 func GzipEnc(b *buffer.Buffer) (*buffer.Buffer, error) {
