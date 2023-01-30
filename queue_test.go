@@ -51,26 +51,26 @@ func Test_Compression(t *testing.T) {
 		cstates = append(cstates, state)
 	}
 
-	cstack := CreateStateQueue(cschema)
-	err = cstack.PushAll(cstates)
+	cqueue := CreateStateQueue(cschema)
+	err = cqueue.PushAll(cstates)
 	require.Nil(t, err)
-	cdata, err := cstack.Encode()
-	require.Nil(t, err)
-
-	stack := CreateStateQueue(schema)
-	err = stack.PushAll(states)
-	require.Nil(t, err)
-	data, err := stack.Encode()
+	cdata, err := cqueue.Encode()
 	require.Nil(t, err)
 
-	err = cstack.Decode(cdata)
+	queue := CreateStateQueue(schema)
+	err = queue.PushAll(states)
 	require.Nil(t, err)
-	err = stack.Decode(data)
+	data, err := queue.Encode()
 	require.Nil(t, err)
 
-	cdstates, err := cstack.GetStates()
+	err = cqueue.Decode(cdata)
 	require.Nil(t, err)
-	dstates, err := stack.GetStates()
+	err = queue.Decode(data)
+	require.Nil(t, err)
+
+	cdstates, err := cqueue.GetStates()
+	require.Nil(t, err)
+	dstates, err := queue.GetStates()
 	require.Nil(t, err)
 
 	v, err := cdstates[0].Get("F_BOOL")
@@ -132,16 +132,16 @@ func Test_PipelineComparative(t *testing.T) {
 	// -----------------
 
 	// Encode
-	stack := CreateStateQueue(schema)
-	err := stack.PushAll(states)
+	queue := CreateStateQueue(schema)
+	err := queue.PushAll(states)
 	require.Nil(t, err)
-	data, err := stack.Encode()
+	data, err := queue.Encode()
 	require.Nil(t, err)
 
 	// Decode
-	err = stack.Decode(data)
+	err = queue.Decode(data)
 	require.Nil(t, err)
-	dstates, err := stack.GetStates()
+	dstates, err := queue.GetStates()
 	require.Nil(t, err)
 
 	// Check states == decoded
@@ -150,16 +150,16 @@ func Test_PipelineComparative(t *testing.T) {
 	// -----------------
 
 	// Encode with z
-	zstack := CreateStateQueue(zschema)
-	err = zstack.PushAll(zstates)
+	zqueue := CreateStateQueue(zschema)
+	err = zqueue.PushAll(zstates)
 	require.Nil(t, err)
-	zdata, err := zstack.Encode()
+	zdata, err := zqueue.Encode()
 	require.Nil(t, err)
 
 	// Decode with z
-	err = zstack.Decode(zdata)
+	err = zqueue.Decode(zdata)
 	require.Nil(t, err)
-	zstates, err = zstack.GetStates()
+	zstates, err = zqueue.GetStates()
 	require.Nil(t, err)
 
 	// Check states == decoded states with z
@@ -168,16 +168,16 @@ func Test_PipelineComparative(t *testing.T) {
 	// -----------------
 
 	// Encode with t:z
-	tzstack := CreateStateQueue(tzschema)
-	err = tzstack.PushAll(tzstates)
+	tzqueue := CreateStateQueue(tzschema)
+	err = tzqueue.PushAll(tzstates)
 	require.Nil(t, err)
-	tzdata, err := tzstack.Encode()
+	tzdata, err := tzqueue.Encode()
 	require.Nil(t, err)
 
 	// Decode with t:z
-	err = tzstack.Decode(tzdata)
+	err = tzqueue.Decode(tzdata)
 	require.Nil(t, err)
-	tzstates, err = tzstack.GetStates()
+	tzstates, err = tzqueue.GetStates()
 	require.Nil(t, err)
 
 	// Check states == decoded states with t:z
@@ -213,13 +213,13 @@ func Test_PushPop(t *testing.T) {
 	err = state1.Set("F_COUNTER", 2)
 	require.Nil(t, err)
 
-	stack := CreateStateQueue(schema)
-	err = stack.Push(state0)
+	queue := CreateStateQueue(schema)
+	err = queue.Push(state0)
 	require.Nil(t, err)
-	err = stack.Push(state1)
+	err = queue.Push(state1)
 	require.Nil(t, err)
 
-	pstate, err := stack.Pop()
+	pstate, err := queue.Pop()
 	require.Nil(t, err)
 	v, err := pstate.Get("F_COUNTER")
 	require.Nil(t, err)
@@ -256,8 +256,8 @@ func Test_InvalidPushState(t *testing.T) {
 	state, err := eschema.CreateState()
 	require.Nil(t, err)
 
-	stack := CreateStateQueue(sschema)
-	err = stack.Push(state)
+	queue := CreateStateQueue(sschema)
+	err = queue.Push(state)
 	require.NotNil(t, err)
 }
 

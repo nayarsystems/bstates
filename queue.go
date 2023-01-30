@@ -45,7 +45,7 @@ func (s *StateQueue) PushAll(states []*State) error {
 
 func (s *StateQueue) Push(state *State) error {
 	if state.GetSchema().GetSHA256() != s.StateSchema.GetSHA256() {
-		return fmt.Errorf("schema used in the new state does not match the schema used by this state stack")
+		return fmt.Errorf("schema used in new state does not match the schema used by this state queue")
 	}
 	stateBuff, err := state.Encode()
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *StateQueue) FromMsi(msg map[string]interface{}) error {
 	}
 	sameSchema := reflect.DeepEqual(schemaIdStr, s.StateSchema.GetHashString())
 	if !sameSchema {
-		return fmt.Errorf("incompatible state stack message")
+		return fmt.Errorf("incompatible state queue message")
 	}
 	blob, err := ei.N(msg).M("payload").Bytes()
 	if err != nil {
