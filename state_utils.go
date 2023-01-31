@@ -19,17 +19,27 @@ func StatesToMsiStates(states []*State) (out []map[string]interface{}, err error
 func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 	data := map[string]interface{}{}
 	fields := to.GetFieldsDesc()
+	fieldNames := []string{}
 	for _, f := range fields {
-		fromValue, err := from.Get(f.Name)
+		fieldNames = append(fieldNames, f.Name)
+	}
+	for name := range to.schema.decodedFields {
+		fieldNames = append(fieldNames, name)
+	}
+	for name := range to.schema.mappedFields {
+		fieldNames = append(fieldNames, name)
+	}
+	for _, name := range fieldNames {
+		fromValue, err := from.Get(name)
 		if err != nil {
-			return nil, fmt.Errorf("field \"%s\" not found in source state", f.Name)
+			return nil, fmt.Errorf("field \"%s\" not found in source state", name)
 		}
-		toValue, err := to.Get(f.Name)
+		toValue, err := to.Get(name)
 		if err != nil {
-			return nil, fmt.Errorf("field \"%s\" not found in final state", f.Name)
+			return nil, fmt.Errorf("field \"%s\" not found in final state", name)
 		}
 		if !reflect.DeepEqual(fromValue, toValue) {
-			data[f.Name] = toValue
+			data[name] = toValue
 		}
 	}
 	return data, nil

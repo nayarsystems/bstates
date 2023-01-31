@@ -78,6 +78,30 @@ func Test_GetDeltaMsiState(t *testing.T) {
 				Type:         T_INT,
 				Size:         3,
 			},
+			{
+				Name:         "F_STRING_BUFFER",
+				DefaultValue: []byte{'h', 'e', 'l', 'l', 'o'},
+				Type:         T_BUFFER,
+				Size:         5,
+			},
+		},
+		DecodedFields: map[string]DecodedStateFields{
+			"STRING": {
+				From:         "F_STRING_BUFFER",
+				FieldDecoder: BufferToString,
+			},
+		},
+		MappedFields: map[string]MappedStateField{
+			"TYPE": {
+				From:  "F_INT32",
+				MapId: "TYPE_MAP",
+			},
+		},
+		DecoderIntMaps: map[string]map[int64]interface{}{
+			"TYPE_MAP": {
+				-1: "TYPE A",
+				-2: "TYPE B",
+			},
 		},
 	})
 	require.Nil(t, err)
@@ -90,6 +114,7 @@ func Test_GetDeltaMsiState(t *testing.T) {
 	require.Nil(t, err)
 	edata := map[string]interface{}{
 		"F_INT32": -2,
+		"TYPE":    "TYPE B",
 	}
 	require.Equal(t, edata, data)
 
@@ -100,6 +125,26 @@ func Test_GetDeltaMsiState(t *testing.T) {
 	}
 	data, err = GetDeltaMsiState(state0, state1)
 	require.Nil(t, err)
+	require.Equal(t, edata, data)
+
+	state0 = state1.GetCopy()
+	state1.Set("F_INT32", -1)
+	data, err = GetDeltaMsiState(state0, state1)
+	require.Nil(t, err)
+	edata = map[string]interface{}{
+		"F_INT32": -1,
+		"TYPE":    "TYPE A",
+	}
+	require.Equal(t, edata, data)
+
+	state0 = state1.GetCopy()
+	state1.Set("F_STRING_BUFFER", []byte{'h', 'i'})
+	data, err = GetDeltaMsiState(state0, state1)
+	require.Nil(t, err)
+	edata = map[string]interface{}{
+		"F_STRING_BUFFER": []byte{'h', 'i'},
+		"STRING":          "hi",
+	}
 	require.Equal(t, edata, data)
 
 	state0 = state1.GetCopy()
