@@ -11,28 +11,6 @@ import (
 func main() {
 	schemaRaw := `
 	{
-		"decoderIntMaps": 
-		{
-			"STATE_MAP": {
-				"0" : "IDLE",
-				"1" : "STOPPED",
-				"2" : "RUNNING"
-			}
-		},
-		"mappedFields":
-		{
-			"STATE": {			
-				"from": "STATE_CODE",
-				"mapId": "STATE_MAP"
-			}
-		},
-		"decodedFields":
-		{
-			"MESSAGE": {
-				"from": "MESSAGE_BUFFER",
-				"decoder": "BufferToString"
-			}
-		},
 		"fields": [
 			{
 				"name": "3BITS_INT",
@@ -71,7 +49,29 @@ func main() {
 				"name": "FLOAT32",
 				"type": "float32"
 			}
-		]
+		],
+		"decoderIntMaps": 
+		{
+			"STATE_MAP": {
+				"0" : "IDLE",
+				"1" : "STOPPED",
+				"2" : "RUNNING"
+			}
+		},
+		"mappedFields":
+		{
+			"STATE": {			
+				"from": "STATE_CODE",
+				"mapId": "STATE_MAP"
+			}
+		},
+		"decodedFields":
+		{
+			"MESSAGE": {
+				"from": "MESSAGE_BUFFER",
+				"decoder": "BufferToString"
+			}
+		}
 	}`
 
 	var schema bstates.StateSchema
