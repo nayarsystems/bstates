@@ -114,7 +114,7 @@ func main() {
 		perrf("can't create state from schema: %v\n", err)
 	}
 	if err = stateFromRaw.Decode(raw); err != nil {
-		perrf("can't create state from schema: %v\n", err)
+		perrf("can't decode state: %v\n", err)
 	}
 
 	printState("state 1 from raw", stateFromRaw)
