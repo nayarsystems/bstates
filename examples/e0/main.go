@@ -66,6 +66,10 @@ func main() {
 				"name": "MESSAGE_BUFFER",
 				"type": "buffer",
 				"size": 96
+			},
+			{
+				"name": "FLOAT32",
+				"type": "float32"
 			}
 		]
 	}`
@@ -102,6 +106,9 @@ func main() {
 	if err = state.Set("MESSAGE_BUFFER", "Hello World"); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
+	if err = state.Set("FLOAT32", 12345678.5); err != nil {
+		perrf("can't update value: %v\n", err)
+	}
 
 	printState("state 1", state)
 
@@ -118,7 +125,6 @@ func main() {
 	}
 
 	printState("state 1 from raw", stateFromRaw)
-
 }
 
 func printState(name string, state *bstates.State) {
