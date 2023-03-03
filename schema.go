@@ -309,6 +309,7 @@ type StateField struct {
 	DefaultValue    interface{}
 	Type            StateFieldType
 	LossyDebouncing time.Duration
+	LossyThrottle   time.Duration
 }
 
 func (e *StateField) MarshalJSON() (res []byte, err error) {
@@ -333,6 +334,7 @@ func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	rawMap := map[string]interface{}{}
 	rawMap["name"] = e.Name
 	rawMap["lossyDebouncingMs"] = e.LossyDebouncing.Milliseconds()
+	rawMap["lossyThrottleMs"] = e.LossyThrottle.Milliseconds()
 	var fieldTypeStr string
 	switch e.Type {
 	case T_INT:
@@ -369,6 +371,13 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 		lossyDebouncingMs = 0
 	}
 	e.LossyDebouncing = time.Millisecond * time.Duration(lossyDebouncingMs)
+
+	var lossyThrottleMs uint
+	if lossyThrottleMs, err = ei.N(rawField).M("lossyThrottleMs").Uint(); err != nil {
+		lossyThrottleMs = 0
+	}
+	e.LossyThrottle = time.Millisecond * time.Duration(lossyThrottleMs)
+
 	e.Size = ei.N(rawField).M("size").IntZ()
 	e.DefaultValue = ei.N(rawField).M("defaultValue").RawZ()
 	switch {
