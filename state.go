@@ -3,7 +3,6 @@ package bstates
 import (
 	"fmt"
 
-	"github.com/jaracil/ei"
 	"github.com/nayarsystems/buffer/frame"
 )
 
@@ -52,10 +51,6 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 	if err == nil {
 		return v, nil
 	}
-	v, err = f.getMappedField(fieldName)
-	if err == nil {
-		return v, nil
-	}
 	v, err = f.getDecodedField(fieldName)
 	if err == nil {
 		return v, nil
@@ -63,56 +58,12 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 	return nil, err
 }
 
-func (f *State) getMappedField(fieldName string) (value interface{}, err error) {
-	mf, ok := f.schema.mappedFields[fieldName]
-	if !ok {
-		return nil, fmt.Errorf("field \"%s\" not found", fieldName)
-	}
-	fromValueI, err := f.Get(mf.From)
-	if err != nil {
-		return nil, err
-	}
-	fromValue, err := ei.N(fromValueI).Int64()
-	if err != nil {
-		return nil, err
-	}
-	intMap, ok := f.schema.decoderIntMaps[mf.MapId]
-	if !ok {
-		return nil, fmt.Errorf("map \"%s\" not found", mf.MapId)
-	}
-	toValue, ok := intMap[fromValue]
-	if !ok {
-		//return nil, fmt.Errorf("value \"%d\" not in map", fromValue)
-		return "UNKNOWN", nil
-	}
-	return toValue, nil
-}
-
 func (f *State) getDecodedField(fieldName string) (value interface{}, err error) {
 	df, ok := f.schema.decodedFields[fieldName]
 	if !ok {
 		return nil, fmt.Errorf("field \"%s\" not found", fieldName)
 	}
-	switch df.FieldDecoder {
-	case BufferToString:
-		fromValueI, err := f.Get(df.From)
-		if err != nil {
-			return nil, err
-		}
-		fromValue, err := ei.N(fromValueI).Bytes()
-		if err != nil {
-			return nil, err
-		}
-		i := 0
-		for ; i < len(fromValue); i++ {
-			if fromValue[i] == 0 {
-				break
-			}
-		}
-		return string(fromValue[:i]), nil
-	default:
-		return nil, fmt.Errorf("unknown decoder for field \"%s\"", fieldName)
-	}
+	return df.Decoder.Decode(f)
 }
 
 func (e *State) ToMsi() (map[string]interface{}, error) {
@@ -125,14 +76,6 @@ func (e *State) ToMsi() (map[string]interface{}, error) {
 		}
 		data[f.Name] = v
 	}
-	for name := range e.schema.mappedFields {
-		v, err := e.Get(name)
-		if err != nil {
-			return nil, err
-		}
-		data[name] = v
-	}
-
 	for name := range e.schema.decodedFields {
 		v, err := e.Get(name)
 		if err != nil {

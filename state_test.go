@@ -21,10 +21,13 @@ func Test_StatesToMsiStates(t *testing.T) {
 				Size:         3,
 			},
 		},
-		MappedFields: map[string]MappedStateField{
-			"TYPE": {
-				From:  "F_INT32",
-				MapId: "TYPE_MAP",
+		DecodedFields: []DecodedStateField{
+			{
+				Name: "TYPE",
+				Decoder: &IntMapDecoder{
+					From:  "F_INT32",
+					MapId: "TYPE_MAP",
+				},
 			},
 		},
 		DecoderIntMaps: map[string]map[int64]interface{}{
@@ -85,16 +88,14 @@ func Test_GetDeltaMsiState(t *testing.T) {
 				Size:         5,
 			},
 		},
-		DecodedFields: map[string]DecodedStateFields{
-			"STRING": {
-				From:         "F_STRING_BUFFER",
-				FieldDecoder: BufferToString,
+		DecodedFields: []DecodedStateField{
+			{
+				Name:    "STRING",
+				Decoder: &BufferToStringDecoder{From: "F_STRING_BUFFER"},
 			},
-		},
-		MappedFields: map[string]MappedStateField{
-			"TYPE": {
-				From:  "F_INT32",
-				MapId: "TYPE_MAP",
+			{
+				Name:    "TYPE",
+				Decoder: &IntMapDecoder{From: "F_INT32", MapId: "TYPE_MAP"},
 			},
 		},
 		DecoderIntMaps: map[string]map[int64]interface{}{

@@ -25,7 +25,7 @@ func Test_Unmarshall_InvalidType(t *testing.T) {
 	require.NotNil(t, err)
 }
 
-func Test_Unmarshall(t *testing.T) {
+func Test_Unmarshall_V1Schema(t *testing.T) {
 	schemaRaw :=
 		`
 	{
@@ -98,6 +98,83 @@ func Test_Unmarshall(t *testing.T) {
 
 }
 
+func Test_Unmarshall_V2Schema(t *testing.T) {
+	schemaRaw :=
+		`
+	{
+		"version": "2.0",
+		"encoderPipeline": "t:z",
+		"decoderIntMaps": 
+		{
+			"STATE_MAP": {
+				"0" : "IDLE",
+				"1" : "STOPPED",
+				"2" : "RUNNING"
+			}
+		},
+		"decodedFields": [
+			{
+				"name": "MESSAGE",
+				"decoder": "BufferToString",
+				"params": {
+					"from": "MESSAGE_BUFFER"
+				}
+			},
+			{
+				"name": "STATE",
+				"decoder": "IntMap",
+				"params": {
+					"from": "STATE_CODE",
+					"mapId": "STATE_MAP"
+				}
+			}
+		],
+		"fields": [
+			{
+				"name": "STATE_CODE",
+				"type": "int",
+				"size": 2
+			},
+			{
+				"name": "CHAR",
+				"type": "int",
+				"size": 8
+			},
+			{
+				"name": "BOOL",
+				"type": "bool"
+			},
+			{
+				"name": "3BITS INT",
+				"type": "int",
+				"size": 3
+			},
+			{
+				"name": "6BIT_UINT",
+				"type": "uint",
+				"size": 6
+			},
+			{
+				"name": "323BIT_BUFFER",
+				"type": "buffer",
+				"size": 323
+			},
+			{
+				"name": "MESSAGE_BUFFER",
+				"type": "buffer",
+				"size": 96
+			}
+		]
+	}
+	`
+	var schema StateSchema
+	err := json.Unmarshal([]byte(schemaRaw), &schema)
+	require.Nil(t, err)
+	eSchema := createSchemaForJSONTests(t)
+	require.Equal(t, eSchema, &schema)
+
+}
+
 func Test_Marshall(t *testing.T) {
 	schema := createSchemaForJSONTests(t)
 	raw, err := json.Marshal(schema)
@@ -120,16 +197,19 @@ func createSchemaForJSONTests(t *testing.T) *StateSchema {
 					2: "RUNNING",
 				},
 			},
-			MappedFields: map[string]MappedStateField{
-				"STATE": {
-					From:  "STATE_CODE",
-					MapId: "STATE_MAP",
+			DecodedFields: []DecodedStateField{
+				{
+					Name: "MESSAGE",
+					Decoder: &BufferToStringDecoder{
+						From: "MESSAGE_BUFFER",
+					},
 				},
-			},
-			DecodedFields: map[string]DecodedStateFields{
-				"MESSAGE": {
-					From:         "MESSAGE_BUFFER",
-					FieldDecoder: BufferToString,
+				{
+					Name: "STATE",
+					Decoder: &IntMapDecoder{
+						From:  "STATE_CODE",
+						MapId: "STATE_MAP",
+					},
 				},
 			},
 			Fields: []StateField{

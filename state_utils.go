@@ -26,9 +26,6 @@ func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 	for name := range to.schema.decodedFields {
 		fieldNames = append(fieldNames, name)
 	}
-	for name := range to.schema.mappedFields {
-		fieldNames = append(fieldNames, name)
-	}
 	for _, name := range fieldNames {
 		fromValue, err := from.Get(name)
 		if err != nil {

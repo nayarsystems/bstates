@@ -19,10 +19,14 @@ const (
 	MOD_BITTRANS = "t"
 )
 
+const (
+	SCHEMA_VERSION_1_0 = "1.0"
+	SCHEMA_VERSION_2_0 = "2.0"
+)
+
 type StateSchema struct {
 	fields          []StateField
-	mappedFields    map[string]MappedStateField
-	decodedFields   map[string]DecodedStateFields
+	decodedFields   map[string]DecodedStateField
 	fieldsBitSize   int
 	fieldsByteSize  int
 	encoderPipeline []string
@@ -32,26 +36,9 @@ type StateSchema struct {
 
 type StateSchemaParams struct {
 	Fields          []StateField
-	MappedFields    map[string]MappedStateField
-	DecodedFields   map[string]DecodedStateFields
+	DecodedFields   []DecodedStateField
 	EncoderPipeline string
 	DecoderIntMaps  map[string]map[int64]interface{}
-}
-
-type MappedStateField struct {
-	From  string `json:"from"`
-	MapId string `json:"mapId"`
-}
-
-type FieldDecoderType string
-
-const (
-	BufferToString FieldDecoderType = "BufferToString"
-)
-
-type DecodedStateFields struct {
-	From         string           `json:"from"`
-	FieldDecoder FieldDecoderType `json:"decoder"`
 }
 
 func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
@@ -68,14 +55,10 @@ func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 		e.fields = append(e.fields, field)
 	}
 	e.updateByteSize()
-	e.mappedFields = make(map[string]MappedStateField)
-	for name, mappedField := range params.MappedFields {
-		e.mappedFields[name] = mappedField
-	}
 
-	e.decodedFields = make(map[string]DecodedStateFields)
-	for name, decodedField := range params.DecodedFields {
-		e.decodedFields[name] = decodedField
+	e.decodedFields = make(map[string]DecodedStateField)
+	for _, decodedField := range params.DecodedFields {
+		e.decodedFields[decodedField.Name] = decodedField
 	}
 
 	e.decoderIntMaps = map[string]map[int64]interface{}{}
@@ -111,12 +94,15 @@ func (s *StateSchema) CreateState() (*State, error) {
 }
 
 func (s *StateSchema) ToMsi() map[string]interface{} {
+	decodedFieldsList := []DecodedStateField{}
+	for _, f := range s.decodedFields {
+		decodedFieldsList = append(decodedFieldsList, f)
+	}
 	data := map[string]interface{}{
-		"version":         "1.0",
+		"version":         SCHEMA_VERSION_2_0,
 		"encoderPipeline": strings.Join(s.encoderPipeline, ":"),
 		"decoderIntMaps":  s.decoderIntMaps,
-		"mappedFields":    s.mappedFields,
-		"decodedFields":   s.decodedFields,
+		"decodedFields":   decodedFieldsList,
 		"fields":          s.fields,
 	}
 	return data
@@ -134,12 +120,11 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	//// Uncomment code below to version checking
-	// var version string
-	// version, err = ei.N(rawMap).M("version").String()
-	// if err != nil {
-	// 	version = "1.0"
-	// }
+	var version string
+	version, err = ei.N(rawMap).M("version").String()
+	if err != nil {
+		version = SCHEMA_VERSION_1_0
+	}
 
 	if err = s.setPipelines(ei.N(rawMap).M("encoderPipeline").StringZ()); err != nil {
 		return err
@@ -188,50 +173,69 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 		}
 		s.decoderIntMaps[mapId] = newMap
 	}
+	s.decodedFields = map[string]DecodedStateField{}
 
-	rawMappedFields := ei.N(rawMap).M("mappedFields").MapStrZ()
-	s.mappedFields = map[string]MappedStateField{}
-	for name, data := range rawMappedFields {
-		msi, ok := data.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("wrong type for state field")
+	if version == SCHEMA_VERSION_2_0 {
+		var rawFields []interface{}
+		if rawFields, err = ei.N(rawMap).M("decodedFields").Slice(); err != nil {
+			return err
 		}
-		field := MappedStateField{}
-		field.From, err = ei.N(msi).M("from").String()
-		if err != nil {
-			return fmt.Errorf("no source field specified for mapped field: %v", err)
+		for _, rawField := range rawFields {
+			msi, ok := rawField.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("wrong type for decoded state field")
+			}
+			field := DecodedStateField{}
+			err = field.FromMsi(msi)
+			if err != nil {
+				return err
+			}
+			s.decodedFields[field.Name] = field
 		}
-		field.MapId, err = ei.N(msi).M("mapId").String()
-		if err != nil {
-			return fmt.Errorf("no map id specified for mapped field: %v", err)
+	} else if version == SCHEMA_VERSION_1_0 {
+		rawMappedFields := ei.N(rawMap).M("mappedFields").MapStrZ()
+		for name, data := range rawMappedFields {
+			msi, ok := data.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("wrong type for state field")
+			}
+			field := DecodedStateField{}
+			field.Name = name
+
+			field.Decoder, err = NewDecoder(string(IntMapDecoderType), msi)
+			if err != nil {
+				return fmt.Errorf("field decoder error: %v", err)
+			}
+			s.decodedFields[name] = field
 		}
-		s.mappedFields[name] = field
+		rawDecodedFields := ei.N(rawMap).M("decodedFields").MapStrZ()
+		for name, data := range rawDecodedFields {
+			msi, ok := data.(map[string]interface{})
+			if !ok {
+				return fmt.Errorf("wrong type for state field")
+			}
+			field := DecodedStateField{
+				Name: name,
+			}
+			decoderParams := map[string]interface{}{}
+
+			decoderParams["from"], err = ei.N(msi).M("from").String()
+			if err != nil {
+				return fmt.Errorf("no source field specified for decoded field: %v", err)
+			}
+
+			decoderStr, err := ei.N(msi).M("decoder").String()
+			if err != nil {
+				return fmt.Errorf("no decoder specified for decoded field: %v", err)
+			}
+			field.Decoder, err = NewDecoder(decoderStr, decoderParams)
+			if err != nil {
+				return fmt.Errorf("field decoder error: %v", err)
+			}
+			s.decodedFields[name] = field
+		}
 	}
 
-	rawDecodedFields := ei.N(rawMap).M("decodedFields").MapStrZ()
-	s.decodedFields = map[string]DecodedStateFields{}
-	for name, data := range rawDecodedFields {
-		msi, ok := data.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("wrong type for state field")
-		}
-		field := DecodedStateFields{}
-		field.From, err = ei.N(msi).M("from").String()
-		if err != nil {
-			return fmt.Errorf("no source field specified for decoded field: %v", err)
-		}
-		decoderStr, err := ei.N(msi).M("decoder").String()
-		if err != nil {
-			return fmt.Errorf("no decoder specified for decoded field: %v", err)
-		}
-		switch decoderStr {
-		case string(BufferToString):
-			field.FieldDecoder = BufferToString
-		default:
-			return fmt.Errorf("unknown decoder \"%s\"", decoderStr)
-		}
-		s.decodedFields[name] = field
-	}
 	return nil
 }
 
@@ -472,4 +476,56 @@ func (e *StateField) normalize() error {
 		}
 	}
 	return nil
+}
+
+type DecodedStateField struct {
+	Name    string
+	Decoder Decoder
+}
+
+func (df *DecodedStateField) ToMsi() (map[string]interface{}, error) {
+	m := map[string]interface{}{}
+	m["name"] = df.Name
+	m["decoder"] = df.Decoder.Name()
+	m["params"] = df.Decoder.GetParams()
+	return m, nil
+}
+
+func (df *DecodedStateField) FromMsi(m map[string]interface{}) error {
+	var err error
+	df.Name, err = ei.N(m).M("name").String()
+	if err != nil {
+		return fmt.Errorf("name field error: %v", err)
+	}
+	params, err := ei.N(m).M("params").MapStr()
+	if err != nil {
+		return fmt.Errorf("params field error: %v", err)
+	}
+	dtype, err := ei.N(m).M("decoder").String()
+	if err != nil {
+		return fmt.Errorf("decoder field error: %v", err)
+	}
+	df.Decoder, err = NewDecoder(dtype, params)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (df *DecodedStateField) MarshalJSON() (res []byte, err error) {
+	rawMap, err := df.ToMsi()
+	if err != nil {
+		return nil, fmt.Errorf("fix me: decoded field marshal error: %v", err)
+	}
+	res, err = json.Marshal(rawMap)
+	return res, err
+}
+
+func (df *DecodedStateField) UnmarshalJSON(b []byte) error {
+	var rawField map[string]interface{}
+	err := json.Unmarshal(b, &rawField)
+	if err != nil {
+		return fmt.Errorf("decoded field unmarshal error: %v", err)
+	}
+	return df.FromMsi(rawField)
 }
