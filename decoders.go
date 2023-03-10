@@ -157,6 +157,12 @@ func NewNumberToUnixTsMsDecoder(params map[string]interface{}) (d *NumberToUnixT
 	if err != nil {
 		return nil, fmt.Errorf("\"factor\" field error: %v", err)
 	}
+	if d.Factor <= 0 {
+		return nil, fmt.Errorf("\"factor\" must be > 0")
+	}
+	if d.Year < 1970 {
+		return nil, fmt.Errorf("\"year\" must be >= 1970")
+	}
 	return
 }
 
@@ -176,6 +182,6 @@ func (d *NumberToUnixTsMsDecoder) Decode(s *State) (interface{}, error) {
 	offsetDate := time.Date(int(d.Year), time.January, 1, 0, 0, 0, 0, time.UTC)
 	offsetDateUnixMs := offsetDate.UnixMilli()
 	// convert to millis using given factor
-	unixTsMs := uint64(int64(fromValue*d.Factor) - offsetDateUnixMs)
+	unixTsMs := uint64(offsetDateUnixMs + int64(fromValue*d.Factor))
 	return unixTsMs, nil
 }
