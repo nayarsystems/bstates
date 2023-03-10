@@ -2,6 +2,7 @@ package bstates
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/jaracil/ei"
 )
@@ -9,8 +10,9 @@ import (
 type FieldDecoderType string
 
 const (
-	BufferToStringDecoderType FieldDecoderType = "BufferToString"
-	IntMapDecoderType         FieldDecoderType = "IntMap"
+	BufferToStringDecoderType   FieldDecoderType = "BufferToString"
+	NumberToUnixTsMsDecoderType FieldDecoderType = "NumberToUnixTsMs"
+	IntMapDecoderType           FieldDecoderType = "IntMap"
 )
 
 type Decoder interface {
@@ -25,12 +27,15 @@ func NewDecoder(dtype string, params map[string]interface{}) (d Decoder, err err
 		d, err = NewBufferToStringDecoder(params)
 	case IntMapDecoderType:
 		d, err = NewIntMapDecoder(params)
+	case NumberToUnixTsMsDecoderType:
+		d, err = NewNumberToUnixTsMsDecoder(params)
 	default:
 		err = fmt.Errorf("unknown decoder \"%s\"", dtype)
 	}
 	return
 }
 
+// BufferToString decoder
 type BufferToStringDecoder struct {
 	From string
 }
@@ -72,6 +77,7 @@ func (d *BufferToStringDecoder) Decode(s *State) (interface{}, error) {
 	return string(fromValue[:i]), nil
 }
 
+// IntMap decoder
 type IntMapDecoder struct {
 	From  string
 	MapId string
@@ -120,4 +126,56 @@ func (d *IntMapDecoder) Decode(s *State) (interface{}, error) {
 		return "UNKNOWN", nil
 	}
 	return toValue, nil
+}
+
+// NumberToUnixTsMs decoder
+type NumberToUnixTsMsDecoder struct {
+	From   string
+	Year   uint // offset
+	Factor float64
+}
+
+func (d *NumberToUnixTsMsDecoder) GetParams() map[string]interface{} {
+	m := map[string]interface{}{}
+	m["from"] = d.From
+	m["year"] = d.Year
+	m["factor"] = d.Factor
+	return m
+}
+
+func NewNumberToUnixTsMsDecoder(params map[string]interface{}) (d *NumberToUnixTsMsDecoder, err error) {
+	d = &NumberToUnixTsMsDecoder{}
+	d.From, err = ei.N(params).M("from").String()
+	if err != nil {
+		return nil, fmt.Errorf("\"from\" field error: %v", err)
+	}
+	d.Year, err = ei.N(params).M("year").Uint()
+	if err != nil {
+		return nil, fmt.Errorf("\"year\" field error: %v", err)
+	}
+	d.Factor, err = ei.N(params).M("factor").Float64()
+	if err != nil {
+		return nil, fmt.Errorf("\"factor\" field error: %v", err)
+	}
+	return
+}
+
+func (d *NumberToUnixTsMsDecoder) Name() FieldDecoderType {
+	return NumberToUnixTsMsDecoderType
+}
+
+func (d *NumberToUnixTsMsDecoder) Decode(s *State) (interface{}, error) {
+	fromValueI, err := s.Get(d.From)
+	if err != nil {
+		return nil, err
+	}
+	fromValue, err := ei.N(fromValueI).Float64()
+	if err != nil {
+		return nil, err
+	}
+	offsetDate := time.Date(int(d.Year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	offsetDateUnixMs := offsetDate.UnixMilli()
+	// convert to millis using given factor
+	unixTsMs := uint64(int64(fromValue*d.Factor) - offsetDateUnixMs)
+	return unixTsMs, nil
 }

@@ -7,29 +7,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Unmarshall_InvalidType(t *testing.T) {
+func Test_Unmarshall_V1Schema(t *testing.T) {
 	schemaRaw :=
 		`
 	{
-		"fields": [
-			{
-				"name": "A",
-				"type": "i23nt",
-				"size": 8
-			}
-		]
-	}
-	`
-	var schema StateSchema
-	err := json.Unmarshal([]byte(schemaRaw), &schema)
-	require.Error(t, err)
-}
-
-func Test_Unmarshall_Schema(t *testing.T) {
-	schemaRaw :=
-		`
-	{
-		"version": "2.0",
 		"encoderPipeline": "t:z",
 		"decoderIntMaps": 
 		{
@@ -39,32 +20,20 @@ func Test_Unmarshall_Schema(t *testing.T) {
 				"2" : "RUNNING"
 			}
 		},
-		"decodedFields": [
-			{
-				"name": "MESSAGE",
-				"decoder": "BufferToString",
-				"params": {
-					"from": "MESSAGE_BUFFER"
-				}
-			},
-			{
-				"name": "STATE",
-				"decoder": "IntMap",
-				"params": {
-					"from": "STATE_CODE",
-					"mapId": "STATE_MAP"
-				}
-			},
-			{
-				"name": "TIMESTAMP_MS",
-				"decoder": "NumberToUnixTsMs",
-				"params": {
-					"from": "48BIT_SECS_FROM_2022",
-					"year": "2022",
-					"factor": 1000
-				}
+		"mappedFields":
+		{
+			"STATE": {			
+				"from": "STATE_CODE",
+				"mapId": "STATE_MAP"
 			}
-		],
+		},
+		"decodedFields":
+		{
+			"MESSAGE": {
+				"from": "MESSAGE_BUFFER",
+				"decoder": "BufferToString"
+			}
+		},
 		"fields": [
 			{
 				"name": "STATE_CODE",
@@ -86,9 +55,9 @@ func Test_Unmarshall_Schema(t *testing.T) {
 				"size": 3
 			},
 			{
-				"name": "48BIT_SECS_FROM_2022",
+				"name": "6BIT_UINT",
 				"type": "uint",
-				"size": 48
+				"size": 6
 			},
 			{
 				"name": "323BIT_BUFFER",
@@ -106,19 +75,13 @@ func Test_Unmarshall_Schema(t *testing.T) {
 	var schema StateSchema
 	err := json.Unmarshal([]byte(schemaRaw), &schema)
 	require.NoError(t, err)
-	eSchema := createSchemaForJSONTests(t)
+	eSchema := createV1SchemaForJSONTests(t)
 	require.Equal(t, eSchema, &schema)
 
 }
 
-func Test_GetSHA256(t *testing.T) {
-	schema := createSchemaForJSONTests(t)
-	require.Equal(t, schema.GetSHA256(), schema.GetSHA256())
-	require.Equal(t, schema.GetSHA256(), schema.GetSHA256())
-}
-
-func Test_Marshall(t *testing.T) {
-	schema := createSchemaForJSONTests(t)
+func Test_Marshall_V1Schema(t *testing.T) {
+	schema := createV1SchemaForJSONTests(t)
 	raw, err := json.Marshal(schema)
 	require.NoError(t, err)
 	var fromRaw StateSchema
@@ -128,7 +91,7 @@ func Test_Marshall(t *testing.T) {
 	require.Equal(t, schema.GetSHA256(), fromRaw.GetSHA256())
 }
 
-func createSchemaForJSONTests(t *testing.T) *StateSchema {
+func createV1SchemaForJSONTests(t *testing.T) *StateSchema {
 	schema, err := CreateStateSchema(
 		&StateSchemaParams{
 			EncoderPipeline: "t:z",
@@ -151,14 +114,6 @@ func createSchemaForJSONTests(t *testing.T) *StateSchema {
 					Decoder: &IntMapDecoder{
 						From:  "STATE_CODE",
 						MapId: "STATE_MAP",
-					},
-				},
-				{
-					Name: "TIMESTAMP_MS",
-					Decoder: &NumberToUnixTsMsDecoder{
-						From:   "48BIT_SECS_FROM_2022",
-						Year:   2022,
-						Factor: 1000,
 					},
 				},
 			},
@@ -184,9 +139,9 @@ func createSchemaForJSONTests(t *testing.T) *StateSchema {
 					Size: 3,
 				},
 				{
-					Name: "48BIT_SECS_FROM_2022",
+					Name: "6BIT_UINT",
 					Type: T_UINT,
-					Size: 48,
+					Size: 6,
 				},
 				{
 					Name: "323BIT_BUFFER",
@@ -205,46 +160,9 @@ func createSchemaForJSONTests(t *testing.T) *StateSchema {
 	return schema
 }
 
-func Test_Unmarshall_InvalidBufferSize(t *testing.T) {
-	schemaRaw :=
-		`
-	{
-		"fields": [
-			{
-				"name": "A",
-				"type": "buffer",
-				"size": 0
-			}
-		]
-	}
-	`
-	var schema StateSchema
-	err := json.Unmarshal([]byte(schemaRaw), &schema)
-	require.Error(t, err)
-}
-
-func Test_Unmarshall_InvalidIntSize(t *testing.T) {
-	schemaRaw :=
-		`
-	{
-		"fields": [
-			{
-				"name": "A",
-				"type": "int",
-				"size": 0
-			}
-		]
-	}
-	`
-	var schema StateSchema
-	err := json.Unmarshal([]byte(schemaRaw), &schema)
-	require.Error(t, err)
-}
-
-func Test_CodeToStringMap(t *testing.T) {
+func Test_V1Schema_CodeToStringMap(t *testing.T) {
 	schemaJson := `
 		{
-			"version": "2.0",
 			"encoderPipeline": "t:z",
 			"decoderIntMaps": 
 			{
@@ -254,16 +172,13 @@ func Test_CodeToStringMap(t *testing.T) {
 					"2" : "RUNNING"
 				}
 			},
-			"decodedFields": [
-				{
-					"name": "STATE",
-					"decoder": "IntMap",
-					"params": {
-						"from": "STATE_CODE",
-						"mapId": "STATE_MAP"
-					}
+			"mappedFields":
+			{
+				"STATE": {			
+					"from": "STATE_CODE",
+					"mapId": "STATE_MAP"
 				}
-			],
+			},
 			"fields": [
 				{
 					"name": "STATE_CODE",

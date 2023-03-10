@@ -3,6 +3,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd h1:4MeyWzia2q0jIePfPv281gT5+xX7s2Fdf7fgebwfXbQ=
 github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd/go.mod h1:vY3hztyrLc9fGs8e9rvAhkYsSPhdryJUDlwnVDpYIfI=
+github.com/mitchellh/hashstructure/v2 v2.0.2 h1:vGKWl0YJqUNxE8d+h8f6NJLcCJrgbhC4NcD46KavDd4=
+github.com/mitchellh/hashstructure/v2 v2.0.2/go.mod h1:MG3aRVU/N29oo/V/IhBX8GR/zz4kQkprJgF2EVszyDE=
 github.com/nayarsystems/buffer v0.0.2 h1:i/mB41U8RIzotEfyLjec2PgBfqC42G43QZYHEyM2TD0=
 github.com/nayarsystems/buffer v0.0.2/go.mod h1:O/MPQ7Ls2Feb/78IQ1qEdPYeUXX76I0YMfghSAUcprI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

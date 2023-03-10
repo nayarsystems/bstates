@@ -2,6 +2,7 @@ package bstates
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 	"crypto/sha256"
 
 	"github.com/jaracil/ei"
+	hash "github.com/mitchellh/hashstructure/v2"
 )
 
 const (
@@ -244,9 +246,29 @@ func (s *StateSchema) GetHashString() string {
 	return base64.StdEncoding.EncodeToString(hash[:])
 }
 
+type SchemaHashInput struct {
+	Fields          []StateField
+	DecodedFields   map[string]DecodedStateField
+	EncoderPipeline []string
+	DecoderPipeline []string
+	DecoderIntMaps  map[string]map[int64]interface{}
+}
+
 func (s *StateSchema) GetSHA256() [32]byte {
-	raw, _ := json.Marshal(s)
-	return sha256.Sum256(raw)
+	hi := SchemaHashInput{
+		Fields:          s.fields,
+		DecodedFields:   s.decodedFields,
+		EncoderPipeline: s.encoderPipeline,
+		DecoderPipeline: s.decoderPipeline,
+		DecoderIntMaps:  s.decoderIntMaps,
+	}
+	hashRaw, _ := hash.Hash(hi, hash.FormatV2, &hash.HashOptions{
+		Hasher: NewSHA256Hasher(),
+	})
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, hashRaw)
+	sha256.New()
+	return sha256.Sum256(b)
 }
 
 func (s *StateSchema) GetEncoderPipeline() []string {

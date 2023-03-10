@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd
+	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nayarsystems/buffer v0.0.2
 	github.com/stretchr/testify v1.8.1
 )
