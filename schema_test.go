@@ -14,8 +14,6 @@ func Test_GetSHA256(t *testing.T) {
 
 	// This assert repetition is ok. Here we check that the
 	// obtained hash is always the same for the same input.
-	// This works despite using maps (which have unordered keys)
-	// thanks to the use of github.com/mitchellh/hashstructure
 	require.Equal(t, schema1.GetSHA256(), schema1.GetSHA256())
 	require.Equal(t, schema1.GetSHA256(), schema1.GetSHA256())
 
