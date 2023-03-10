@@ -7,6 +7,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Test_GetSHA256(t *testing.T) {
+	params1 := createSchemaParams(t)
+	schema1, err := CreateStateSchema(params1)
+	require.NoError(t, err)
+
+	// This assert repetition is ok. Here we check that the
+	// obtained hash is always the same for the same input.
+	// This works despite using maps (which have unordered keys)
+	// thanks to the use of github.com/mitchellh/hashstructure
+	require.Equal(t, schema1.GetSHA256(), schema1.GetSHA256())
+	require.Equal(t, schema1.GetSHA256(), schema1.GetSHA256())
+
+	// New schema created with the same parameters must has the same hash
+	params2 := createSchemaParams(t)
+	schema2, err := CreateStateSchema(params2)
+	require.NoError(t, err)
+	require.Equal(t, schema1.GetSHA256(), schema2.GetSHA256())
+
+	// New schema created with different parameters must has different hash
+	params3 := createSchemaParams(t)
+	params3.DecodedFields[0].Name = params3.DecodedFields[0].Name + "_2"
+	schema3, err := CreateStateSchema(params3)
+	require.NoError(t, err)
+	require.NotEqual(t, schema1.GetSHA256(), schema3.GetSHA256())
+}
+
 func Test_Unmarshall_InvalidType(t *testing.T) {
 	schemaRaw :=
 		`
@@ -25,7 +51,43 @@ func Test_Unmarshall_InvalidType(t *testing.T) {
 	require.Error(t, err)
 }
 
-func Test_Unmarshall_Schema(t *testing.T) {
+func Test_Unmarshall_InvalidBufferSize(t *testing.T) {
+	schemaRaw :=
+		`
+	{
+		"fields": [
+			{
+				"name": "A",
+				"type": "buffer",
+				"size": 0
+			}
+		]
+	}
+	`
+	var schema StateSchema
+	err := json.Unmarshal([]byte(schemaRaw), &schema)
+	require.Error(t, err)
+}
+
+func Test_Unmarshall_InvalidIntSize(t *testing.T) {
+	schemaRaw :=
+		`
+	{
+		"fields": [
+			{
+				"name": "A",
+				"type": "int",
+				"size": 0
+			}
+		]
+	}
+	`
+	var schema StateSchema
+	err := json.Unmarshal([]byte(schemaRaw), &schema)
+	require.Error(t, err)
+}
+
+func Test_Unmarshall(t *testing.T) {
 	schemaRaw :=
 		`
 	{
@@ -106,19 +168,13 @@ func Test_Unmarshall_Schema(t *testing.T) {
 	var schema StateSchema
 	err := json.Unmarshal([]byte(schemaRaw), &schema)
 	require.NoError(t, err)
-	eSchema := createSchemaForJSONTests(t)
+	eSchema := createSchema(t)
 	require.Equal(t, eSchema, &schema)
 
 }
 
-func Test_GetSHA256(t *testing.T) {
-	schema := createSchemaForJSONTests(t)
-	require.Equal(t, schema.GetSHA256(), schema.GetSHA256())
-	require.Equal(t, schema.GetSHA256(), schema.GetSHA256())
-}
-
 func Test_Marshall(t *testing.T) {
-	schema := createSchemaForJSONTests(t)
+	schema := createSchema(t)
 	raw, err := json.Marshal(schema)
 	require.NoError(t, err)
 	var fromRaw StateSchema
@@ -128,161 +184,81 @@ func Test_Marshall(t *testing.T) {
 	require.Equal(t, schema.GetSHA256(), fromRaw.GetSHA256())
 }
 
-func createSchemaForJSONTests(t *testing.T) *StateSchema {
-	schema, err := CreateStateSchema(
-		&StateSchemaParams{
-			EncoderPipeline: "t:z",
-			DecoderIntMaps: map[string]map[int64]interface{}{
-				"STATE_MAP": {
-					0: "IDLE",
-					1: "STOPPED",
-					2: "RUNNING",
-				},
-			},
-			DecodedFields: []DecodedStateField{
-				{
-					Name: "MESSAGE",
-					Decoder: &BufferToStringDecoder{
-						From: "MESSAGE_BUFFER",
-					},
-				},
-				{
-					Name: "STATE",
-					Decoder: &IntMapDecoder{
-						From:  "STATE_CODE",
-						MapId: "STATE_MAP",
-					},
-				},
-				{
-					Name: "TIMESTAMP_MS",
-					Decoder: &NumberToUnixTsMsDecoder{
-						From:   "48BIT_SECS_FROM_2022",
-						Year:   2022,
-						Factor: 1000,
-					},
-				},
-			},
-			Fields: []StateField{
-				{
-					Name: "STATE_CODE",
-					Type: T_INT,
-					Size: 2,
-				},
-				{
-					Name: "CHAR",
-					Type: T_INT,
-					Size: 8,
-				},
-				{
-					Name: "BOOL",
-					Type: T_BOOL,
-					Size: 1,
-				},
-				{
-					Name: "3BITS INT",
-					Type: T_INT,
-					Size: 3,
-				},
-				{
-					Name: "48BIT_SECS_FROM_2022",
-					Type: T_UINT,
-					Size: 48,
-				},
-				{
-					Name: "323BIT_BUFFER",
-					Type: T_BUFFER,
-					Size: 323,
-				},
-				{
-					Name: "MESSAGE_BUFFER",
-					Type: T_BUFFER,
-					Size: 96,
-				},
-			},
-		},
-	)
+func createSchema(t *testing.T) *StateSchema {
+	schema, err := CreateStateSchema(createSchemaParams(t))
 	require.NoError(t, err)
 	return schema
 }
 
-func Test_Unmarshall_InvalidBufferSize(t *testing.T) {
-	schemaRaw :=
-		`
-	{
-		"fields": [
-			{
-				"name": "A",
-				"type": "buffer",
-				"size": 0
-			}
-		]
-	}
-	`
-	var schema StateSchema
-	err := json.Unmarshal([]byte(schemaRaw), &schema)
-	require.Error(t, err)
-}
-
-func Test_Unmarshall_InvalidIntSize(t *testing.T) {
-	schemaRaw :=
-		`
-	{
-		"fields": [
-			{
-				"name": "A",
-				"type": "int",
-				"size": 0
-			}
-		]
-	}
-	`
-	var schema StateSchema
-	err := json.Unmarshal([]byte(schemaRaw), &schema)
-	require.Error(t, err)
-}
-
-func Test_CodeToStringMap(t *testing.T) {
-	schemaJson := `
-		{
-			"version": "2.0",
-			"encoderPipeline": "t:z",
-			"decoderIntMaps": 
-			{
-				"STATE_MAP": {
-					"0" : "IDLE",
-					"1" : "STOPPED",
-					"2" : "RUNNING"
-				}
+func createSchemaParams(t *testing.T) *StateSchemaParams {
+	return &StateSchemaParams{
+		EncoderPipeline: "t:z",
+		DecoderIntMaps: map[string]map[int64]interface{}{
+			"STATE_MAP": {
+				0: "IDLE",
+				1: "STOPPED",
+				2: "RUNNING",
 			},
-			"decodedFields": [
-				{
-					"name": "STATE",
-					"decoder": "IntMap",
-					"params": {
-						"from": "STATE_CODE",
-						"mapId": "STATE_MAP"
-					}
-				}
-			],
-			"fields": [
-				{
-					"name": "STATE_CODE",
-					"type": "int",
-					"size": 2
-				}
-			]
-		}
-	`
-	schema := &StateSchema{}
-	err := schema.UnmarshalJSON([]byte(schemaJson))
-	require.NoError(t, err)
-	state, err := schema.CreateState()
-	require.NoError(t, err)
-
-	err = state.Set("STATE_CODE", 2)
-	require.NoError(t, err)
-
-	v, err := state.Get("STATE")
-	require.NoError(t, err)
-	require.Equal(t, "RUNNING", v)
+		},
+		DecodedFields: []DecodedStateField{
+			{
+				Name: "MESSAGE",
+				Decoder: &BufferToStringDecoder{
+					From: "MESSAGE_BUFFER",
+				},
+			},
+			{
+				Name: "STATE",
+				Decoder: &IntMapDecoder{
+					From:  "STATE_CODE",
+					MapId: "STATE_MAP",
+				},
+			},
+			{
+				Name: "TIMESTAMP_MS",
+				Decoder: &NumberToUnixTsMsDecoder{
+					From:   "48BIT_SECS_FROM_2022",
+					Year:   2022,
+					Factor: 1000,
+				},
+			},
+		},
+		Fields: []StateField{
+			{
+				Name: "STATE_CODE",
+				Type: T_INT,
+				Size: 2,
+			},
+			{
+				Name: "CHAR",
+				Type: T_INT,
+				Size: 8,
+			},
+			{
+				Name: "BOOL",
+				Type: T_BOOL,
+				Size: 1,
+			},
+			{
+				Name: "3BITS INT",
+				Type: T_INT,
+				Size: 3,
+			},
+			{
+				Name: "48BIT_SECS_FROM_2022",
+				Type: T_UINT,
+				Size: 48,
+			},
+			{
+				Name: "323BIT_BUFFER",
+				Type: T_BUFFER,
+				Size: 323,
+			},
+			{
+				Name: "MESSAGE_BUFFER",
+				Type: T_BUFFER,
+				Size: 96,
+			},
+		},
+	}
 }

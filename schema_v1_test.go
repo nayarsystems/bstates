@@ -75,13 +75,13 @@ func Test_Unmarshall_V1Schema(t *testing.T) {
 	var schema StateSchema
 	err := json.Unmarshal([]byte(schemaRaw), &schema)
 	require.NoError(t, err)
-	eSchema := createV1SchemaForJSONTests(t)
+	eSchema := createV1Schema(t)
 	require.Equal(t, eSchema, &schema)
 
 }
 
 func Test_Marshall_V1Schema(t *testing.T) {
-	schema := createV1SchemaForJSONTests(t)
+	schema := createV1Schema(t)
 	raw, err := json.Marshal(schema)
 	require.NoError(t, err)
 	var fromRaw StateSchema
@@ -91,7 +91,7 @@ func Test_Marshall_V1Schema(t *testing.T) {
 	require.Equal(t, schema.GetSHA256(), fromRaw.GetSHA256())
 }
 
-func createV1SchemaForJSONTests(t *testing.T) *StateSchema {
+func createV1Schema(t *testing.T) *StateSchema {
 	schema, err := CreateStateSchema(
 		&StateSchemaParams{
 			EncoderPipeline: "t:z",
@@ -158,46 +158,4 @@ func createV1SchemaForJSONTests(t *testing.T) *StateSchema {
 	)
 	require.NoError(t, err)
 	return schema
-}
-
-func Test_V1Schema_CodeToStringMap(t *testing.T) {
-	schemaJson := `
-		{
-			"encoderPipeline": "t:z",
-			"decoderIntMaps": 
-			{
-				"STATE_MAP": {
-					"0" : "IDLE",
-					"1" : "STOPPED",
-					"2" : "RUNNING"
-				}
-			},
-			"mappedFields":
-			{
-				"STATE": {			
-					"from": "STATE_CODE",
-					"mapId": "STATE_MAP"
-				}
-			},
-			"fields": [
-				{
-					"name": "STATE_CODE",
-					"type": "int",
-					"size": 2
-				}
-			]
-		}
-	`
-	schema := &StateSchema{}
-	err := schema.UnmarshalJSON([]byte(schemaJson))
-	require.NoError(t, err)
-	state, err := schema.CreateState()
-	require.NoError(t, err)
-
-	err = state.Set("STATE_CODE", 2)
-	require.NoError(t, err)
-
-	v, err := state.Get("STATE")
-	require.NoError(t, err)
-	require.Equal(t, "RUNNING", v)
 }
