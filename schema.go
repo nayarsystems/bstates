@@ -82,6 +82,15 @@ func (s *StateSchema) GetFields() []*StateField {
 	return fieldsCopy
 }
 
+func (s *StateSchema) GetDecodedFields() []*DecodedStateField {
+	fieldsCopy := make([]*DecodedStateField, 0, len(s.decodedFields))
+	for _, field := range s.decodedFields {
+		fieldCopy := field
+		fieldsCopy = append(fieldsCopy, &fieldCopy)
+	}
+	return fieldsCopy
+}
+
 func (s *StateSchema) GetBitSize() int {
 	return s.fieldsBitSize
 }
