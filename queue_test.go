@@ -1,6 +1,7 @@
 package bstates
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -91,103 +92,76 @@ func Test_Compression(t *testing.T) {
 }
 
 func Test_PipelineComparative(t *testing.T) {
+	// Create states
+	fillStates := func(schema *StateSchema) (states []*State) {
+		numStates := 16383
+		for i := 0; i < numStates; i++ {
+			state, err := schema.CreateState()
+			require.NoError(t, err)
+			err = state.Set("F_COUNTER", i)
+			require.NoError(t, err)
+			err = state.Set("F_ZEROS", 0)
+			require.NoError(t, err)
+			states = append(states, state)
+		}
+		return states
+	}
 
 	schema := testPipelineComparativeCreateSchema(t, "")
 	zschema := testPipelineComparativeCreateSchema(t, "z")
+	zstdschema := testPipelineComparativeCreateSchema(t, "zstd")
 	tzschema := testPipelineComparativeCreateSchema(t, "t:z")
+	tzstdschema := testPipelineComparativeCreateSchema(t, "t:zstd")
 
-	numStates := 2048 // 2^11 - 1
-	states := []*State{}
-	zstates := []*State{}
-	tzstates := []*State{}
+	states := fillStates(schema)
+	zstates := fillStates(zschema)
+	zstdstates := fillStates(zstdschema)
+	tzstates := fillStates(tzschema)
+	tzstdstates := fillStates(tzstdschema)
 
-	// Create states
+	checkPipeline := func(states []*State, schema *StateSchema) (edata []byte) {
+		// Encode
+		queue := CreateStateQueue(schema)
+		err := queue.PushAll(states)
+		require.NoError(t, err)
+		edata, err = queue.Encode()
+		require.NoError(t, err)
 
-	for i := 0; i < numStates; i++ {
-		state, err := schema.CreateState()
+		// Decode
+		err = queue.Decode(edata)
 		require.NoError(t, err)
-		err = state.Set("F_COUNTER", i)
+		dstates, err := queue.GetStates()
 		require.NoError(t, err)
-		err = state.Set("F_ZEROS", 0)
-		require.NoError(t, err)
-		states = append(states, state)
 
-		zstate, err := zschema.CreateState()
-		require.NoError(t, err)
-		err = zstate.Set("F_COUNTER", i)
-		require.NoError(t, err)
-		err = zstate.Set("F_ZEROS", 0)
-		require.NoError(t, err)
-		zstates = append(zstates, zstate)
-
-		tzstate, err := tzschema.CreateState()
-		require.NoError(t, err)
-		err = tzstate.Set("F_COUNTER", i)
-		require.NoError(t, err)
-		err = tzstate.Set("F_ZEROS", 0)
-		require.NoError(t, err)
-		tzstates = append(tzstates, tzstate)
+		// Check states == decoded
+		testEqualStates(t, states, dstates)
+		return
 	}
 
-	// -----------------
-
-	// Encode
-	queue := CreateStateQueue(schema)
-	err := queue.PushAll(states)
-	require.NoError(t, err)
-	data, err := queue.Encode()
-	require.NoError(t, err)
-
-	// Decode
-	err = queue.Decode(data)
-	require.NoError(t, err)
-	dstates, err := queue.GetStates()
-	require.NoError(t, err)
-
-	// Check states == decoded
-	testEqualStates(t, states, dstates)
-
-	// -----------------
+	// No compression
+	data := checkPipeline(states, schema)
 
 	// Encode with z
-	zqueue := CreateStateQueue(zschema)
-	err = zqueue.PushAll(zstates)
-	require.NoError(t, err)
-	zdata, err := zqueue.Encode()
-	require.NoError(t, err)
+	zdata := checkPipeline(zstates, zschema)
 
-	// Decode with z
-	err = zqueue.Decode(zdata)
-	require.NoError(t, err)
-	zstates, err = zqueue.GetStates()
-	require.NoError(t, err)
+	// Encode with zstd
+	zstddata := checkPipeline(zstdstates, zstdschema)
 
-	// Check states == decoded states with z
-	testEqualStates(t, states, zstates)
+	// Encode with t:z
+	tzdata := checkPipeline(tzstates, tzschema)
+
+	// Encode with t:zstd
+	tzstddata := checkPipeline(tzstdstates, tzstdschema)
 
 	// -----------------
 
-	// Encode with t:z
-	tzqueue := CreateStateQueue(tzschema)
-	err = tzqueue.PushAll(tzstates)
-	require.NoError(t, err)
-	tzdata, err := tzqueue.Encode()
-	require.NoError(t, err)
+	fmt.Printf("PipelineComparative: %d states, %d bytes, %d bytes (z), %d bytes (zstd), %d bytes (t:z), %d bytes (t:zstd)\n",
+		len(states), len(data), len(zdata), len(zstddata), len(tzdata), len(tzstddata))
 
-	// Decode with t:z
-	err = tzqueue.Decode(tzdata)
-	require.NoError(t, err)
-	tzstates, err = tzqueue.GetStates()
-	require.NoError(t, err)
-
-	// Check states == decoded states with t:z
-	testEqualStates(t, states, tzstates)
-
-	// ----------------
-
-	// Check sizes of encoded data with no compression, "z" and "t:z"
 	require.Less(t, len(zdata), len(data))
+	require.Less(t, len(zstddata), len(data))
 	require.Less(t, len(tzdata), len(zdata))
+	require.Less(t, len(tzstddata), len(zstddata))
 
 }
 
@@ -324,7 +298,7 @@ func testPipelineComparativeCreateSchema(t *testing.T, encoderPipeline string) *
 			{
 				Name: "F_COUNTER",
 				Type: T_UINT,
-				Size: 11,
+				Size: 14,
 			},
 			{
 				Name: "F_ZEROS",

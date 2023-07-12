@@ -103,6 +103,11 @@ func (s *StateQueue) Encode() (dataOut []byte, err error) {
 			if err != nil {
 				return
 			}
+		case MOD_ZSTD:
+			inputBuf, err = ZstdEnc(inputBuf)
+			if err != nil {
+				return
+			}
 		case MOD_BITTRANS:
 			stateBitSize := s.StateSchema.GetByteSize() * 8
 			inputBuf, err = shuffling.TransposeBits(inputBuf, stateBitSize)
@@ -126,6 +131,11 @@ func (s *StateQueue) Decode(data []byte) (err error) {
 		switch mod {
 		case MOD_GZIP:
 			inputBuf, err = GzipDec(inputBuf)
+			if err != nil {
+				return
+			}
+		case MOD_ZSTD:
+			inputBuf, err = ZstdDec(inputBuf)
 			if err != nil {
 				return
 			}

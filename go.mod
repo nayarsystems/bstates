@@ -4,6 +4,7 @@ go 1.17
 
 require (
 	github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd
+	github.com/klauspost/compress v1.16.7
 	github.com/nayarsystems/buffer v0.1.1
 	github.com/stretchr/testify v1.8.2
 )

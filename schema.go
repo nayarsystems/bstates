@@ -17,6 +17,7 @@ import (
 
 const (
 	MOD_GZIP     = "z"
+	MOD_ZSTD     = "zstd"
 	MOD_BITTRANS = "t"
 )
 
@@ -278,27 +279,23 @@ func (s *StateSchema) updateByteSize() {
 }
 
 func (e *StateSchema) setPipelines(pipelineRaw string) error {
-	pipelineRegex, err := regexp.Compile(`^([^:]+)(:[^:]+)*$`)
-	if err != nil {
-		return err
-	}
-	indexes := pipelineRegex.FindStringSubmatchIndex(pipelineRaw)
 	modifiers := []string{}
-	for indexes != nil {
-		modifier := string(pipelineRaw[indexes[2]:indexes[3]])
-		modifiers = append(modifiers, modifier)
-		fromIdx := indexes[3]
-		if indexes[3] < len(pipelineRaw) {
-			fromIdx++
+	if pipelineRaw != "" {
+		pipelineRegex, err := regexp.Compile(`^([^:]+)(:[^:]+)*$`)
+		if err != nil {
+			return err
 		}
-		pipelineRaw = pipelineRaw[fromIdx:]
-		indexes = pipelineRegex.FindStringSubmatchIndex(pipelineRaw)
-	}
-	for _, mod := range modifiers {
-		switch mod {
-		case MOD_GZIP, MOD_BITTRANS:
-		default:
-			return fmt.Errorf("\"%s\" is not a modifier", mod)
+		ok := pipelineRegex.MatchString(pipelineRaw)
+		if !ok {
+			return fmt.Errorf("wrong pipeline format")
+		}
+		modifiers = strings.Split(pipelineRaw, ":")
+		for _, mod := range modifiers {
+			switch mod {
+			case MOD_GZIP, MOD_ZSTD, MOD_BITTRANS:
+			default:
+				return fmt.Errorf("\"%s\" is not a modifier", mod)
+			}
 		}
 	}
 	e.encoderPipeline = modifiers
