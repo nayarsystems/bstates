@@ -182,8 +182,42 @@ func Test_Marshall(t *testing.T) {
 	require.Equal(t, schema.GetSHA256(), fromRaw.GetSHA256())
 }
 
+func Test_Meta(t *testing.T) {
+	schemaEmptyMeta := createSchemaWithMeta(t, map[string]any{})
+	schemaEmptyMetaHash := schemaEmptyMeta.GetHashString()
+
+	schemaNilMeta := createSchemaWithMeta(t, nil)
+	schemaNilMetaHash := schemaNilMeta.GetHashString()
+
+	require.Equal(t, schemaEmptyMetaHash, schemaNilMetaHash)
+
+	schemaWithMeta := createSchemaWithMeta(t, map[string]any{"class": "A"})
+	schemaWithMetaHash := schemaWithMeta.GetHashString()
+
+	require.NotEqual(t, schemaEmptyMetaHash, schemaWithMetaHash)
+
+	require.Equal(t, schemaWithMeta.GetMeta(), map[string]any{"class": "A"})
+
+	raw, err := json.Marshal(schemaWithMeta)
+	require.NoError(t, err)
+
+	var fromRaw StateSchema
+	err = json.Unmarshal(raw, &fromRaw)
+	require.NoError(t, err)
+	require.Equal(t, schemaWithMeta, &fromRaw)
+	require.Equal(t, fromRaw.GetMeta(), map[string]any{"class": "A"})
+}
+
 func createSchema(t *testing.T) *StateSchema {
 	schema, err := CreateStateSchema(createSchemaParams(t))
+	require.NoError(t, err)
+	return schema
+}
+
+func createSchemaWithMeta(t *testing.T, meta map[string]any) *StateSchema {
+	params := createSchemaParams(t)
+	params.Meta = meta
+	schema, err := CreateStateSchema(params)
 	require.NoError(t, err)
 	return schema
 }

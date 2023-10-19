@@ -27,6 +27,7 @@ const (
 )
 
 type StateSchema struct {
+	meta            map[string]any
 	fields          []StateField
 	decodedFields   map[string]DecodedStateField
 	fieldsBitSize   int
@@ -37,6 +38,7 @@ type StateSchema struct {
 }
 
 type StateSchemaParams struct {
+	Meta            map[string]any
 	Fields          []StateField
 	DecodedFields   []DecodedStateField
 	EncoderPipeline string
@@ -45,6 +47,11 @@ type StateSchemaParams struct {
 
 func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 	e = &StateSchema{}
+	if params.Meta != nil {
+		e.meta = params.Meta
+	} else {
+		e.meta = map[string]any{}
+	}
 	if err = e.setPipelines(params.EncoderPipeline); err != nil {
 		return nil, err
 	}
@@ -119,6 +126,11 @@ func (s *StateSchema) ToMsi() map[string]interface{} {
 		"decodedFields":   decodedFieldsList,
 		"fields":          s.fields,
 	}
+	// Only add meta field if it's not empty in order to keep hash compatibility with older versions.
+	// (json representation of data is used to get the schema hash)
+	if len(s.meta) > 0 {
+		data["meta"] = s.meta
+	}
 	return data
 }
 
@@ -138,6 +150,13 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	version, err = ei.N(rawMap).M("version").String()
 	if err != nil {
 		version = SCHEMA_VERSION_1_0
+	}
+
+	meta := ei.N(rawMap).M("meta").MapStrZ()
+	if len(meta) > 0 {
+		s.meta = meta
+	} else {
+		s.meta = map[string]any{}
 	}
 
 	if err = s.setPipelines(ei.N(rawMap).M("encoderPipeline").StringZ()); err != nil {
@@ -253,6 +272,10 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func (s *StateSchema) GetMeta() map[string]any {
+	return s.meta
+}
+
 func (s *StateSchema) GetHashString() string {
 	hash := s.GetSHA256()
 	return base64.StdEncoding.EncodeToString(hash[:])
@@ -318,12 +341,15 @@ const (
 )
 
 type StateField struct {
-	Name            string
-	Size            int
-	DefaultValue    interface{}
-	Type            StateFieldType
+	Name         string
+	Size         int
+	DefaultValue interface{}
+	Type         StateFieldType
+
+	// Deprecated: schema must not include this kind of field information
 	LossyDebouncing time.Duration
-	LossyThrottle   time.Duration
+	// Deprecated: schema must not include this kind of field information
+	LossyThrottle time.Duration
 }
 
 func (e *StateField) MarshalJSON() (res []byte, err error) {

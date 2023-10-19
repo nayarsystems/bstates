@@ -1,6 +1,6 @@
 module github.com/nayarsystems/bstates
 
-go 1.17
+go 1.18
 
 require (
 	github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd
