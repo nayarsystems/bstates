@@ -175,6 +175,23 @@ func (s *StateQueue) GetStates() ([]*State, error) {
 	return states, nil
 }
 
+func (s *StateQueue) GetStateAt(index int) (*State, error) {
+	queueByteSize := s.GetByteSize()
+	stateByteSize := s.StateSchema.GetByteSize()
+	fullRawBuffer := s.buffer.GetRawBuffer()
+	b := index * stateByteSize
+	if b >= queueByteSize {
+		return nil, fmt.Errorf("index out of range")
+	}
+	stateBuffer := fullRawBuffer[b : b+stateByteSize]
+	tmpState, _ := s.StateSchema.CreateState()
+	err := tmpState.Decode(stateBuffer)
+	if err != nil {
+		return nil, err
+	}
+	return tmpState, nil
+}
+
 func (s *StateQueue) StateBufferIter(iterFunc func(stateBuffer []byte) (end bool)) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()

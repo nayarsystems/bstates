@@ -349,6 +349,38 @@ func Test_StateBufferIterFrom(t *testing.T) {
 
 }
 
+func Test_GetStateAt(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "F_COUNTER",
+				Type: T_UINT,
+				Size: 32,
+			},
+		},
+		EncoderPipeline: "",
+	})
+	require.NoError(t, err)
+
+	state0, _ := schema.CreateState()
+	_ = state0.Set("F_COUNTER", 1)
+	state1, _ := schema.CreateState()
+	_ = state1.Set("F_COUNTER", 2)
+
+	queue := CreateStateQueue(schema)
+	_ = queue.Push(state0)
+	_ = queue.Push(state1)
+
+	state, err := queue.GetStateAt(1)
+	require.NoError(t, err)
+	v, err := state.Get("F_COUNTER")
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), v)
+
+	_, err = queue.GetStateAt(2)
+	require.Error(t, err)
+}
+
 func testPipelineComparativeCreateSchema(t *testing.T, encoderPipeline string) *StateSchema {
 	s, err := CreateStateSchema(&StateSchemaParams{
 		Fields: []StateField{
