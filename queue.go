@@ -187,3 +187,16 @@ func (s *StateQueue) StateBufferIter(iterFunc func(stateBuffer []byte) (end bool
 		}
 	}
 }
+
+func (s *StateQueue) StateBufferIterFrom(from int, iterFunc func(stateBuffer []byte) (end bool)) {
+	queueByteSize := s.GetByteSize()
+	stateByteSize := s.StateSchema.GetByteSize()
+	fullRawBuffer := s.buffer.GetRawBuffer()
+	for b := from * stateByteSize; b < queueByteSize; b += stateByteSize {
+		stateBuffer := fullRawBuffer[b : b+stateByteSize]
+		end := iterFunc(stateBuffer)
+		if end {
+			return
+		}
+	}
+}
