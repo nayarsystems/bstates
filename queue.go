@@ -175,6 +175,13 @@ func (s *StateQueue) GetStates() ([]*State, error) {
 	return states, nil
 }
 
+func (s *StateQueue) GetNumStates() (num int) {
+	queueByteSize := s.GetByteSize()
+	stateByteSize := s.StateSchema.GetByteSize()
+	numStates := queueByteSize / stateByteSize
+	return numStates
+}
+
 func (s *StateQueue) GetStateAt(index int) (*State, error) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()

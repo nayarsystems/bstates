@@ -349,7 +349,7 @@ func Test_StateBufferIterFrom(t *testing.T) {
 
 }
 
-func Test_GetStateAt(t *testing.T) {
+func Test_GetNumStates_GetStateAt(t *testing.T) {
 	schema, err := CreateStateSchema(&StateSchemaParams{
 		Fields: []StateField{
 			{
@@ -370,6 +370,9 @@ func Test_GetStateAt(t *testing.T) {
 	queue := CreateStateQueue(schema)
 	_ = queue.Push(state0)
 	_ = queue.Push(state1)
+
+	numStates := queue.GetNumStates()
+	require.Equal(t, 2, numStates)
 
 	state, err := queue.GetStateAt(1)
 	require.NoError(t, err)
