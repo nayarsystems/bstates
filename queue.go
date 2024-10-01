@@ -9,11 +9,15 @@ import (
 	"github.com/nayarsystems/buffer/shuffling"
 )
 
+// StateQueue is a queue of states stored in a buffer one after another.
+//
+// All elements in the same queue must use the [StateSchema] of the queue.
 type StateQueue struct {
-	StateSchema *StateSchema
-	buffer      *buffer.Buffer
+	StateSchema *StateSchema   // Schemas used to encode each of the states in the queue.
+	buffer      *buffer.Buffer // Buffer where the queue is stored.
 }
 
+// Creates a [StateQueue] of [States] encoded with the [StateSchema] provided.
 func CreateStateQueue(schema *StateSchema) *StateQueue {
 	return &StateQueue{
 		StateSchema: schema,
@@ -21,18 +25,22 @@ func CreateStateQueue(schema *StateSchema) *StateQueue {
 	}
 }
 
+// GetBitSize return the number of bits used by the internal buffer.
 func (s *StateQueue) GetBitSize() int {
 	return s.buffer.GetByteSize() * 8
 }
 
+// GetByteSize return the number of bytes used by the internal buffer.
 func (s *StateQueue) GetByteSize() int {
 	return s.buffer.GetByteSize()
 }
 
+// Clear deletes all elements in the queue by creating a new internal buffer.
 func (s *StateQueue) Clear() {
 	s.buffer.Init(0)
 }
 
+// PushAll pushes all the [State] objects provided at the end of the queue.
 func (s *StateQueue) PushAll(states []*State) error {
 	for _, e := range states {
 		err := s.Push(e)
@@ -43,6 +51,7 @@ func (s *StateQueue) PushAll(states []*State) error {
 	return nil
 }
 
+// Push the [State] object provided into the end of the queue.
 func (s *StateQueue) Push(state *State) error {
 	if state.GetSchema().GetSHA256() != s.StateSchema.GetSHA256() {
 		return fmt.Errorf("schema used in new state does not match the schema used by this state queue")
@@ -55,6 +64,7 @@ func (s *StateQueue) Push(state *State) error {
 	return nil
 }
 
+// Pop the first [State] in the queue removing it from the queue.
 func (s *StateQueue) Pop() (*State, error) {
 	stateSize := s.StateSchema.GetByteSize() * 8
 	outBuffer, err := s.buffer.Read(stateSize)
@@ -69,6 +79,7 @@ func (s *StateQueue) Pop() (*State, error) {
 	return outState, nil
 }
 
+// ToMsi converts the [StateQueue] into a map[string]interface{} representation.
 func (s *StateQueue) ToMsi() (msg map[string]interface{}, err error) {
 	msg = map[string]interface{}{}
 	msg["schema"] = s.StateSchema.GetHashString()
@@ -76,6 +87,7 @@ func (s *StateQueue) ToMsi() (msg map[string]interface{}, err error) {
 	return msg, err
 }
 
+// FromMsi populates the [StateQueue] from a map representation.
 func (s *StateQueue) FromMsi(msg map[string]interface{}) error {
 	schemaIdStr, err := ei.N(msg).M("schema").String()
 	if err != nil {
@@ -93,6 +105,7 @@ func (s *StateQueue) FromMsi(msg map[string]interface{}) error {
 	return err
 }
 
+// Encode runs the encoderPipeline of the schema and outputs a binary blob with the queue compressed.
 func (s *StateQueue) Encode() (dataOut []byte, err error) {
 	inputBuf := s.buffer
 	encPipe := s.StateSchema.GetEncoderPipeline()
@@ -121,6 +134,7 @@ func (s *StateQueue) Encode() (dataOut []byte, err error) {
 	return
 }
 
+// Decode [Clear] the queue and then runs the decoderPipeline of the schema populating the queue.
 func (s *StateQueue) Decode(data []byte) (err error) {
 	s.Clear()
 	inputBuf := &buffer.Buffer{}
@@ -152,6 +166,7 @@ func (s *StateQueue) Decode(data []byte) (err error) {
 	return
 }
 
+// GetStates returns a slice with all the events on the queue.
 func (s *StateQueue) GetStates() ([]*State, error) {
 	queueBitSize := s.GetBitSize()
 	stateByteSize := s.StateSchema.GetByteSize()
@@ -175,6 +190,7 @@ func (s *StateQueue) GetStates() ([]*State, error) {
 	return states, nil
 }
 
+// GetNumStates returns the number of states in the queue.
 func (s *StateQueue) GetNumStates() (num int) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()
@@ -182,6 +198,7 @@ func (s *StateQueue) GetNumStates() (num int) {
 	return numStates
 }
 
+// GetStateAt returns the state at an index.
 func (s *StateQueue) GetStateAt(index int) (*State, error) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()
@@ -199,6 +216,8 @@ func (s *StateQueue) GetStateAt(index int) (*State, error) {
 	return tmpState, nil
 }
 
+// StateBufferIter iterates trough the queue executing the callback for each [State]. If the callback returns
+// true the iterations ends early.
 func (s *StateQueue) StateBufferIter(iterFunc func(stateBuffer []byte) (end bool)) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()
@@ -212,6 +231,7 @@ func (s *StateQueue) StateBufferIter(iterFunc func(stateBuffer []byte) (end bool
 	}
 }
 
+// StateBufferIterFrom iterates the queue as [StateBufferIter] but starting from the state index provided.
 func (s *StateQueue) StateBufferIterFrom(from int, iterFunc func(stateBuffer []byte) (end bool)) {
 	queueByteSize := s.GetByteSize()
 	stateByteSize := s.StateSchema.GetByteSize()

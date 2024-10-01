@@ -8,6 +8,8 @@ import (
 	"github.com/nayarsystems/buffer/buffer"
 )
 
+// GzipEnc compresses the provided buffer using Gzip compression and
+// returns a new buffer containing the compressed data.
 func GzipEnc(b *buffer.Buffer) (*buffer.Buffer, error) {
 	buf := new(bytes.Buffer)
 	wr, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
@@ -29,6 +31,8 @@ func GzipEnc(b *buffer.Buffer) (*buffer.Buffer, error) {
 	return outb, nil
 }
 
+// GzipDec decompresses the provided buffer which is expected to be in
+// Gzip format and returns a new buffer containing the decompressed data.
 func GzipDec(b *buffer.Buffer) (*buffer.Buffer, error) {
 	r := bytes.NewReader(b.GetRawBuffer()[:b.GetByteSize()])
 	var gzr *gzip.Reader

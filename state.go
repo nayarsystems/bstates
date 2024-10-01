@@ -6,11 +6,14 @@ import (
 	"github.com/nayarsystems/buffer/frame"
 )
 
+// State represents a system state in a point of time.
+// It holds data in the [frame.Frame] as defined by the provided [StateSchema].
 type State struct {
-	*frame.Frame
-	schema *StateSchema
+	*frame.Frame              // Underlying binary data of the state
+	schema       *StateSchema // Schema used for decoding the binary data of the state
 }
 
+// CreateState initializes a new empty [State] based on the provided [StateSchema].
 func CreateState(schema *StateSchema) (*State, error) {
 	f := frame.CreateFrame()
 	fields := []*frame.FieldDesc{}
@@ -33,6 +36,8 @@ func CreateState(schema *StateSchema) (*State, error) {
 	return state, nil
 }
 
+// GetCopy returns a deep copy of the current [State].
+// This includes a copy of the underlying [Frame] and retains the original [StateSchema].
 func (e *State) GetCopy() *State {
 	fcopy := e.Frame.GetCopy()
 	ecopy := &State{
@@ -42,10 +47,15 @@ func (e *State) GetCopy() *State {
 	return ecopy
 }
 
+// GetSchema returns the [StateSchema] associated with the current [State].
 func (e *State) GetSchema() *StateSchema {
 	return e.schema
 }
 
+// Get retrieves the value of the specified field from the [State].
+//
+// It first tries to retrieve the raw value from the [frame.Frame] and, if unsuccessful,
+// attempts to decode the field using the schema's decoding logic.
 func (f *State) Get(fieldName string) (value interface{}, err error) {
 	v, err := f.Frame.Get(fieldName)
 	if err == nil {
@@ -66,6 +76,9 @@ func (f *State) getDecodedField(fieldName string) (value interface{}, err error)
 	return df.Decoder.Decode(f)
 }
 
+// ToMsi converts the [State] into a map[string]interface{} representation,
+// where each field's name is a key, and its corresponding value is the field's value.
+// It includes both regular fields and decoded fields.
 func (e *State) ToMsi() (map[string]interface{}, error) {
 	data := map[string]interface{}{}
 	fields := e.GetFieldsDesc()
