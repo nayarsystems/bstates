@@ -2,12 +2,15 @@ package bstates
 
 import (
 	"bytes"
-	"github.com/klauspost/compress/zstd"
 	"io"
+
+	"github.com/klauspost/compress/zstd"
 
 	"github.com/nayarsystems/buffer/buffer"
 )
 
+// ZstdEnc compresses the provided buffer using Zstandard (Zstd) compression
+// and returns a new buffer containing the compressed data.
 func ZstdEnc(b *buffer.Buffer) (*buffer.Buffer, error) {
 	buf := new(bytes.Buffer)
 	wr, err := zstd.NewWriter(buf, zstd.WithEncoderConcurrency(1))
@@ -29,6 +32,9 @@ func ZstdEnc(b *buffer.Buffer) (*buffer.Buffer, error) {
 	return outb, nil
 }
 
+// ZstdDec decompresses the provided buffer which is expected to be in
+// Zstandard (Zstd) format and returns a new buffer containing the
+// decompressed data.
 func ZstdDec(b *buffer.Buffer) (*buffer.Buffer, error) {
 	r := bytes.NewReader(b.GetRawBuffer()[:b.GetByteSize()])
 	var gzr *zstd.Decoder

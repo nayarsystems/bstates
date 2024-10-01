@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+// StatesToMsiStates converts a slice of State pointers into a slice of
+// maps containing the corresponding MSI states.
+//
+// Each State is transformed into a map using the ToMsi() method.
 func StatesToMsiStates(states []*State) (out []map[string]interface{}, err error) {
 	for _, e := range states {
 		var de map[string]interface{}
@@ -16,6 +20,8 @@ func StatesToMsiStates(states []*State) (out []map[string]interface{}, err error
 	return
 }
 
+// GetDeltaMsiState compares two State objects and returns a map
+// containing the values that have changed between them.
 func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 	data := map[string]interface{}{}
 	fields := to.GetFieldsDesc()
@@ -42,6 +48,11 @@ func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 	return data, nil
 }
 
+// GetDeltaMsiStates returns a slice of maps that represent the changes
+// between each successive pair of State objects in the provided slice.
+//
+// The first State is converted to its MSI representation, and subsequent
+// States are compared to the last seen State using GetDeltaMsiState().
 func GetDeltaMsiStates(states []*State) ([]map[string]interface{}, error) {
 	out := []map[string]interface{}{}
 	if len(states) > 0 {

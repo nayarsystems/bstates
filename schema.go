@@ -15,10 +15,11 @@ import (
 	"github.com/jaracil/ei"
 )
 
+// encoderPipeline options
 const (
-	MOD_GZIP     = "z"
-	MOD_ZSTD     = "zstd"
-	MOD_BITTRANS = "t"
+	MOD_GZIP     = "z"    // run gzip compression
+	MOD_ZSTD     = "zstd" // run zstd compression
+	MOD_BITTRANS = "t"    // transpose the event matrix, for better compression
 )
 
 const (
@@ -26,25 +27,29 @@ const (
 	SCHEMA_VERSION_2_0 = "2.0"
 )
 
+// StateSchema represents the schema used for encoding/decoding states.
+// Fields within an schema can be plain or encoded.
 type StateSchema struct {
-	meta            map[string]any
-	fields          []StateField
-	decodedFields   map[string]DecodedStateField
-	fieldsBitSize   int
-	fieldsByteSize  int
-	encoderPipeline []string
-	decoderPipeline []string
-	decoderIntMaps  map[string]map[int64]interface{}
+	meta            map[string]any                   // Meta data associated with the schema
+	fields          []StateField                     // List of state fields defined in the schema
+	decodedFields   map[string]DecodedStateField     // List of decoders defined in the schema
+	fieldsBitSize   int                              // Total size of fields in bits
+	fieldsByteSize  int                              // Total size of fields in bytes
+	encoderPipeline []string                         // Pipeline used for compressing an [StateQueue], an [StateQueue] is a set of states.
+	decoderPipeline []string                         // Pipeline used for decompressing an [StateQueue], same as [encoderPipeline] but in reverse order
+	decoderIntMaps  map[string]map[int64]interface{} // Integer mappings used for decoding encoded fields
 }
 
+// StateSchemaParams represents the parameters for constructing a [StateSchema].
 type StateSchemaParams struct {
-	Meta            map[string]any
-	Fields          []StateField
-	DecodedFields   []DecodedStateField
-	EncoderPipeline string
-	DecoderIntMaps  map[string]map[int64]interface{}
+	Meta            map[string]any                   // Meta data to associate with the schema
+	Fields          []StateField                     // List of fields to define in the schema
+	DecodedFields   []DecodedStateField              // List of decoded views to define in the schema
+	EncoderPipeline string                           // Encoder pipeline to use to package and unpackage a [StateQueue]
+	DecoderIntMaps  map[string]map[int64]interface{} // Integer mappings used for decoding encoded integer fields
 }
 
+// CreateStateSchema initializes a [StateSchema] from the provided parameters.
 func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 	e = &StateSchema{}
 	if params.Meta != nil {
@@ -81,6 +86,7 @@ func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 	return
 }
 
+// GetFields returns a copy of the list of [StateField] in the schema.
 func (s *StateSchema) GetFields() []*StateField {
 	fieldsCopy := make([]*StateField, 0, len(s.fields))
 	for _, field := range s.fields {
@@ -90,6 +96,7 @@ func (s *StateSchema) GetFields() []*StateField {
 	return fieldsCopy
 }
 
+// GetDecodedFields returns a copy of the list of [DecodedStateField] in the schema.
 func (s *StateSchema) GetDecodedFields() []*DecodedStateField {
 	fieldsCopy := make([]*DecodedStateField, 0, len(s.decodedFields))
 	for _, field := range s.decodedFields {
@@ -99,18 +106,22 @@ func (s *StateSchema) GetDecodedFields() []*DecodedStateField {
 	return fieldsCopy
 }
 
+// GetBitSize returns the total bit size of the fields in the [StateSchema].
 func (s *StateSchema) GetBitSize() int {
 	return s.fieldsBitSize
 }
 
+// GetByteSize returns the total byte size of the fields in the [StateSchema].
 func (s *StateSchema) GetByteSize() int {
 	return s.fieldsByteSize
 }
 
+// CreateState initializes a new [State] object using the [StateSchema].
 func (s *StateSchema) CreateState() (*State, error) {
 	return CreateState(s)
 }
 
+// ToMsi converts the StateSchema into a map[string]interface{} for serialization.
 func (s *StateSchema) ToMsi() map[string]interface{} {
 	decodedFieldsList := []DecodedStateField{}
 	for _, f := range s.decodedFields {
@@ -134,11 +145,13 @@ func (s *StateSchema) ToMsi() map[string]interface{} {
 	return data
 }
 
+// MarshalJSON serializes the [StateSchema] into JSON format.
 func (s *StateSchema) MarshalJSON() (res []byte, err error) {
 	data := s.ToMsi()
 	return json.Marshal(data)
 }
 
+// UnmarshalJSON deserializes the JSON into a [StateSchema].
 func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	var rawMap map[string]interface{}
 	var err error
@@ -272,24 +285,29 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+// GetMeta returns the meta data associated with the [StateSchema].
 func (s *StateSchema) GetMeta() map[string]any {
 	return s.meta
 }
 
+// GetHashString returns the SHA256 hash of the JSON representation of the [StateSchema] as a base64 encoded string.
 func (s *StateSchema) GetHashString() string {
 	hash := s.GetSHA256()
 	return base64.StdEncoding.EncodeToString(hash[:])
 }
 
+// GetSHA256 generates and returns the SHA256 hash of the JSON representation of the [StateSchema].
 func (s *StateSchema) GetSHA256() [32]byte {
 	raw, _ := json.Marshal(s)
 	return sha256.Sum256(raw)
 }
 
+// GetEncoderPipeline returns the encoder pipeline steps as a list of strings.
 func (s *StateSchema) GetEncoderPipeline() []string {
 	return s.encoderPipeline
 }
 
+// GetDecoderPipeline returns the decoder pipeline steps as a list of strings.
 func (s *StateSchema) GetDecoderPipeline() []string {
 	return s.decoderPipeline
 }
@@ -301,6 +319,8 @@ func (s *StateSchema) updateByteSize() {
 	}
 }
 
+// setPipelines sets up the encoding and decoding pipelines based on a raw pipeline string.
+// Returns an error if the pipeline format is incorrect or if there is an unknown modifier.
 func (e *StateSchema) setPipelines(pipelineRaw string) error {
 	modifiers := []string{}
 	if pipelineRaw != "" {
@@ -329,6 +349,7 @@ func (e *StateSchema) setPipelines(pipelineRaw string) error {
 	return nil
 }
 
+// StateFieldType represents the type of a field in the StateSchema.
 type StateFieldType int
 
 const (
@@ -340,9 +361,10 @@ const (
 	T_BUFFER
 )
 
+// StateField defines a field in a [StateSchema].
 type StateField struct {
-	Name         string
-	Size         int
+	Name         string // Name of the field, used for retrieval
+	Size         int    // size in bits
 	DefaultValue interface{}
 	Type         StateFieldType
 
@@ -352,6 +374,7 @@ type StateField struct {
 	LossyThrottle time.Duration
 }
 
+// MarshalJSON serializes the StateField to JSON format.
 func (e *StateField) MarshalJSON() (res []byte, err error) {
 	rawMap, err := e.ToMsi()
 	if err != nil {
@@ -361,6 +384,7 @@ func (e *StateField) MarshalJSON() (res []byte, err error) {
 	return res, err
 }
 
+// UnmarshalJSON deserializes the JSON data into a StateField.
 func (e *StateField) UnmarshalJSON(b []byte) error {
 	var rawField map[string]interface{}
 	err := json.Unmarshal(b, &rawField)
@@ -370,6 +394,7 @@ func (e *StateField) UnmarshalJSON(b []byte) error {
 	return e.FromMsi(rawField)
 }
 
+// ToMsi converts a StateField to a map[string]interface{} for further processing.
 func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	rawMap := map[string]interface{}{}
 	rawMap["name"] = e.Name
@@ -398,6 +423,7 @@ func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	return rawMap, nil
 }
 
+// FromMsi initializes a StateField from a map[string]interface{}.
 func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 	if e.Name = ei.N(rawField).M("name").StringZ(); e.Name == "" {
 		return fmt.Errorf("field name not found")
@@ -440,6 +466,7 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 	return
 }
 
+// normalize ensures the field's type and size are consistent and initialize default values.
 func (e *StateField) normalize() error {
 	var defaultValue interface{}
 	switch e.Type {
@@ -514,11 +541,15 @@ func (e *StateField) normalize() error {
 	return nil
 }
 
+// DecodedStateField represents a view of a [StateField] decoded by a [Decoder].
+//
+// The Name is used to access the decoded view. The raw encoded [StateField] is provided on the parameter "from" to the [Decoder].
 type DecodedStateField struct {
-	Name    string
-	Decoder Decoder
+	Name    string  // Name used to access this field
+	Decoder Decoder // Decoder used to access the original [StateField].
 }
 
+// ToMsi converts the DecodedStateField to a map representation.
 func (df *DecodedStateField) ToMsi() (map[string]interface{}, error) {
 	m := map[string]interface{}{}
 	m["name"] = df.Name
@@ -527,6 +558,7 @@ func (df *DecodedStateField) ToMsi() (map[string]interface{}, error) {
 	return m, nil
 }
 
+// FromMsi populates the DecodedStateField from a map representation.
 func (df *DecodedStateField) FromMsi(m map[string]interface{}) error {
 	var err error
 	df.Name, err = ei.N(m).M("name").String()
@@ -548,6 +580,7 @@ func (df *DecodedStateField) FromMsi(m map[string]interface{}) error {
 	return nil
 }
 
+// MarshalJSON serializes the DecodedStateField to JSON format.
 func (df *DecodedStateField) MarshalJSON() (res []byte, err error) {
 	rawMap, err := df.ToMsi()
 	if err != nil {
@@ -557,6 +590,7 @@ func (df *DecodedStateField) MarshalJSON() (res []byte, err error) {
 	return res, err
 }
 
+// UnmarshalJSON deserializes the JSON data into a DecodedStateField.
 func (df *DecodedStateField) UnmarshalJSON(b []byte) error {
 	var rawField map[string]interface{}
 	err := json.Unmarshal(b, &rawField)

@@ -7,20 +7,30 @@ import (
 	"github.com/jaracil/ei"
 )
 
+// FieldDecoderType defines the type for different field decoder names.
 type FieldDecoderType string
 
+// Implemented decoders are: [BufferToStringDecoder], [NumberToUnixTsMsDecoder] and [IntMapDecoder].
 const (
 	BufferToStringDecoderType   FieldDecoderType = "BufferToString"
 	NumberToUnixTsMsDecoderType FieldDecoderType = "NumberToUnixTsMs"
 	IntMapDecoderType           FieldDecoderType = "IntMap"
 )
 
+// Decoder is an interface that defines how to decode a [StateField] from a [State] object.
+//
+// All Decoders need at least the parameter "from", which specifies the name of the [StateField] to decode. The "from" parameter
+// can be a [DecodedStateField], which means that decoders can be piped.
 type Decoder interface {
-	Name() FieldDecoderType
-	Decode(s *State) (interface{}, error)
-	GetParams() map[string]interface{}
+	Name() FieldDecoderType               // Decoder type
+	Decode(s *State) (interface{}, error) // function called
+	GetParams() map[string]interface{}    // returns a MSI
 }
 
+// NewDecoder creates a new [Decoder] instance based on the provided
+// decoder type and parameters.
+//
+// dtype: Should be one of [FieldDecoderType].
 func NewDecoder(dtype string, params map[string]interface{}) (d Decoder, err error) {
 	switch FieldDecoderType(dtype) {
 	case BufferToStringDecoderType:
@@ -35,9 +45,10 @@ func NewDecoder(dtype string, params map[string]interface{}) (d Decoder, err err
 	return
 }
 
-// BufferToString decoder
+// BufferToString implements a [Decoder] which returns a string from a buffer.
+// This means that the original buffer will be returned as a [string] object stopping at the first null character.
 type BufferToStringDecoder struct {
-	From string
+	From string // "from" parameter: name of the encoded field as defined in StateSchema.Fields
 }
 
 func (d *BufferToStringDecoder) GetParams() map[string]interface{} {
@@ -77,10 +88,11 @@ func (d *BufferToStringDecoder) Decode(s *State) (interface{}, error) {
 	return string(fromValue[:i]), nil
 }
 
-// IntMap decoder
+// IntMapDecoder implements a [Decoder] which decodes an integer value into a string based on a mapping defined
+// in the State object.
 type IntMapDecoder struct {
-	From  string
-	MapId string
+	From  string // "from" parameter: name of the encoded field as defined in StateSchema.Fields
+	MapId string // "mapId" parameter: name of the map as defined in the StateSchema.DecoderIntMaps
 }
 
 func (d *IntMapDecoder) GetParams() map[string]interface{} {
@@ -128,11 +140,13 @@ func (d *IntMapDecoder) Decode(s *State) (interface{}, error) {
 	return toValue, nil
 }
 
-// NumberToUnixTsMs decoder
+// NumberToUnixTsMsDecoder implements a [Decoder] which decodes a numeric value using the following formula:
+//
+// decodedValue = UnixMillis(year) + valueToDecode*factor
 type NumberToUnixTsMsDecoder struct {
-	From   string
-	Year   uint // offset
-	Factor float64
+	From   string  // "from" parameter: name of the encoded field as defined in StateSchema.Fields
+	Year   uint    // "year"
+	Factor float64 // "factor"
 }
 
 func (d *NumberToUnixTsMsDecoder) GetParams() map[string]interface{} {
