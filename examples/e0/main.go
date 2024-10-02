@@ -10,46 +10,9 @@ import (
 
 func main() {
 	schemaRaw := `
-	{
-		"fields": [
-			{
-				"name": "3BITS_INT",
-				"type": "int",
-				"size": 3
-			},
-			{
-				"name": "6BITS_UINT",
-				"type": "uint",
-				"size": 6
-			},
-			{
-				"name": "STATE_CODE",
-				"type": "uint",
-				"size": 2
-			},			
-			{
-				"name": "BOOL1",
-				"type": "bool"
-			},
-			{
-				"name": "8BITS_INT",
-				"type": "int",
-				"size": 8
-			},
-			{
-				"name": "BOOL2",
-				"type": "bool"
-			},
-			{
-				"name": "MESSAGE_BUFFER",
-				"type": "buffer",
-				"size": 96
-			},
-			{
-				"name": "FLOAT32",
-				"type": "float32"
-			}
-		],
+{
+		"version": "2.0",
+		"encoderPipeline": "t:z",
 		"decoderIntMaps": 
 		{
 			"STATE_MAP": {
@@ -58,20 +21,68 @@ func main() {
 				"2" : "RUNNING"
 			}
 		},
-		"mappedFields":
-		{
-			"STATE": {			
-				"from": "STATE_CODE",
-				"mapId": "STATE_MAP"
+		"decodedFields": [
+			{
+				"name": "MESSAGE",
+				"decoder": "BufferToString",
+				"params": {
+					"from": "MESSAGE_BUFFER"
+				}
+			},
+			{
+				"name": "STATE",
+				"decoder": "IntMap",
+				"params": {
+					"from": "STATE_CODE",
+					"mapId": "STATE_MAP"
+				}
+			},
+			{
+				"name": "TIMESTAMP_MS",
+				"decoder": "NumberToUnixTsMs",
+				"params": {
+					"from": "48BIT_SECS_FROM_2022",
+					"year": "2022",
+					"factor": 1000
+				}
 			}
-		},
-		"decodedFields":
-		{
-			"MESSAGE": {
-				"from": "MESSAGE_BUFFER",
-				"decoder": "BufferToString"
+		],
+		"fields": [
+			{
+				"name": "STATE_CODE",
+				"type": "int",
+				"size": 2
+			},
+			{
+				"name": "CHAR",
+				"type": "int",
+				"size": 8
+			},
+			{
+				"name": "BOOL",
+				"type": "bool"
+			},
+			{
+				"name": "3BITS_INT",
+				"type": "int",
+				"size": 3
+			},
+			{
+				"name": "48BIT_SECS_FROM_2022",
+				"type": "uint",
+				"size": 48
+			},
+			{
+				"name": "MESSAGE_BUFFER",
+				"type": "buffer",
+				"size": 96
+			},
+			{		
+			"name": "FLOAT32",
+			"type": "float32"
 			}
-		}
+
+		]
 	}`
 
 	var schema bstates.StateSchema
@@ -88,24 +99,22 @@ func main() {
 	if err = state.Set("3BITS_INT", -3); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
-	if err = state.Set("6BITS_UINT", 0b111111); err != nil {
-		perrf("can't update value: %v\n", err)
-	}
 	if err = state.Set("STATE_CODE", 2); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
-	if err = state.Set("BOOL1", true); err != nil {
-		perrf("can't update value: %v\n", err)
-	}
-	if err = state.Set("8BITS_INT", -127); err != nil {
-		perrf("can't update value: %v\n", err)
-	}
-	if err = state.Set("BOOL2", true); err != nil {
+	if err = state.Set("BOOL", true); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
 	if err = state.Set("MESSAGE_BUFFER", "Hello World"); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
+	if err = state.Set("FLOAT32", 12345678.5); err != nil {
+		perrf("can't update value: %v\n", err)
+	}
+	// update time
+	//offsetDate := time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
+	state.Set("48BIT_SECS_FROM_2022", 0)
+
 	if err = state.Set("FLOAT32", 12345678.5); err != nil {
 		perrf("can't update value: %v\n", err)
 	}
