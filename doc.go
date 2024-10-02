@@ -58,7 +58,7 @@ Each binary blob is an event queue which is composed of one or more state encode
 		    ]
 	}
 
-Decoders allow for complex codification of data, those saving space. In the above example there is a decodedField MESAGE which allows us to read MESSAGE_BUFFER as a string. Decoders work by executing the "decoder" parameter on the "from" field. Currently there are three types of [Decoder].
+Decoders allow for complex codification of data saving space. In the above example there is a decodedField MESAGE which allows us to read MESSAGE_BUFFER as a string. Decoders work by executing the "decoder" parameter on the "from" field. Currently there are three types of [Decoder].
 
 States are the objects which hold data. They are composed by a [frame.Frame] which holds the data and a [StateSchema] that specifies a codification. [StateField] and [DecodedStateField] both can be retrieved using the [State.Get] function.
 
