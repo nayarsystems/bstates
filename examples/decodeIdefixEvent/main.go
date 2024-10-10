@@ -227,512 +227,384 @@ func main() {
   "fields": [
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "TIMESTAMP_RAW",
       "size": 48,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "BOOT_COUNTER",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "EVENT_COUNTER",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "MENHIR_LINKUP",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "MENHIR_RESTARTING",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "MENHIR_READY",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "PRIORITY_EVENT",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "NOTHING_TO_SEND",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "IMSI_RAW",
       "size": 136,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "ICC_RAW",
       "size": 184,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "OPERATOR_RAW",
       "size": 208,
       "type": "buffer"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CREG_RAW",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "ACT_RAW",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_RAW",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_SYSTEMMODE_RAW",
       "size": 112,
       "type": "buffer"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_OPMODE_RAW",
       "size": 3,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_MCC",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_MNC",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_LAC_TAC",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_CELLID",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_SCELLID",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_PCELLID",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CPSI_SID",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CSQ",
       "size": 8,
       "type": "int"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "PPP",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "CLOUD",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "TUN_TX",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "TUN_RX",
       "size": 32,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_DEV_TYPE",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_PRESENT",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_FLASHMODE",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_UPDATING",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_PID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_VID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_PRODUCT",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_VERSION",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P0_ERROR_MSG",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_DEV_TYPE",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_PRESENT",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_FLASHMODE",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_UPDATING",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_PID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_VID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_PRODUCT",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_VERSION",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P1_ERROR_MSG",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_DEV_TYPE",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_PRESENT",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_FLASHMODE",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_UPDATING",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_PID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_VID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_PRODUCT",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_VERSION",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P2_ERROR_MSG",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_DEV_TYPE",
       "size": 4,
       "type": "uint"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_PRESENT",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_FLASHMODE",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": false,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_UPDATING",
       "size": 1,
       "type": "bool"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_PID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": 0,
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_VID",
       "size": 16,
       "type": "uint"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_PRODUCT",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_VERSION",
       "size": 400,
       "type": "buffer"
     },
     {
       "defaultValue": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-      "lossyDebouncingMs": 0,
-      "lossyThrottleMs": 0,
       "name": "P3_ERROR_MSG",
       "size": 400,
       "type": "buffer"
