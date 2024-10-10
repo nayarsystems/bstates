@@ -17,10 +17,16 @@ const (
 	IntMapDecoderType           FieldDecoderType = "IntMap"
 )
 
-// Decoder is an interface that defines how to decode a [StateField] from a [State] object.
+// Decoder is an interface that defines how to decode or transform state information. They
+// provide a "virtual" field.
 //
-// All Decoders need at least the parameter "from", which specifies the name of the [StateField] to decode. The "from" parameter
-// can be a [DecodedStateField], which means that decoders can be piped.
+// While decoders usually use the "from" parameter to specify the name of a [StateField] to decode, it's not mandatory.
+//
+// Decoders can:
+//   - Use multiple input fields (similar to having multiple "from" parameters), allowing for operations with
+//     several operands.
+//   - Access the entire state, enabling more complex decoding logic that isn't limited to specific fields.
+//   - Define constant fields that do not depend on any state field, although this might have limited practical use.
 type Decoder interface {
 	Name() FieldDecoderType               // Decoder type
 	Decode(s *State) (interface{}, error) // function called
