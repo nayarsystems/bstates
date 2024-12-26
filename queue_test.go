@@ -199,6 +199,15 @@ func Test_PushPop(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), v)
 
+	pstate, err = queue.Pop()
+	require.NoError(t, err)
+	v, err = pstate.Get("F_COUNTER")
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), v)
+
+	pstate, err = queue.Pop()
+	require.Nil(t, pstate)
+	require.Error(t, err)
 }
 
 func Test_DecodeFromEmpty_NoCompression(t *testing.T) {

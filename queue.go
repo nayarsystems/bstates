@@ -70,6 +70,9 @@ func (s *StateQueue) Pop() (*State, error) {
 	if err != nil {
 		return nil, err
 	}
+	if (outBuffer.GetBitSize()) == 0 {
+		return nil, fmt.Errorf("empty queue")
+	}
 	outState, err := s.StateSchema.CreateState()
 	if err != nil {
 		return nil, err
