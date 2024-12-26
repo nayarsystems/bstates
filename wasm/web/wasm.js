@@ -9,7 +9,7 @@ if (!WebAssembly.instantiateStreaming) { // polyfill
 
 const go = new Go();
 var mod, wasm;
-WebAssembly.instantiateStreaming(fetch("wasm.wasm"), go.importObject).then((result) => {
+WebAssembly.instantiateStreaming(fetch("bstates.wasm"), go.importObject).then((result) => {
     mod = result.module;
     wasm = result.instance;
     console.clear();

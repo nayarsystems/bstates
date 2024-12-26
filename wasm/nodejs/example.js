@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 
 // Load wasm_exec.js
-require('./wasm_exec.js');
+require('../wasm_exec.js');
 
 const go = new Go(); // `Go` comes from wasm_exec.js
-const wasmFilePath = path.join(__dirname, 'wasm.wasm');
+const wasmFilePath = path.join(__dirname, '../bstates.wasm');
 
 (async () => {
     const wasmBuffer = fs.readFileSync(wasmFilePath);
