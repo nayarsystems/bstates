@@ -2,11 +2,10 @@ package bstates
 
 import (
 	"fmt"
-	"reflect"
-
 	"github.com/jaracil/ei"
 	"github.com/nayarsystems/buffer/buffer"
 	"github.com/nayarsystems/buffer/shuffling"
+	"reflect"
 )
 
 // StateQueue is a queue of states stored in a buffer one after another.
@@ -140,6 +139,11 @@ func (s *StateQueue) Decode(data []byte) (err error) {
 	inputBuf := &buffer.Buffer{}
 	inputBuf.InitFromRawBuffer(data)
 
+	if len(data) == 0 {
+		// This want to avoid EOF error when decompressing empty data
+		return
+	}
+
 	decPipe := s.StateSchema.GetDecoderPipeline()
 	for _, mod := range decPipe {
 		switch mod {
@@ -154,6 +158,9 @@ func (s *StateQueue) Decode(data []byte) (err error) {
 				return
 			}
 		case MOD_BITTRANS:
+			if inputBuf.GetBitSize() == 0 {
+				continue
+			}
 			numStates := inputBuf.GetByteSize() / s.StateSchema.GetByteSize()
 			inputBuf, err = shuffling.TransposeBits(inputBuf, numStates)
 			if err != nil {

@@ -201,6 +201,86 @@ func Test_PushPop(t *testing.T) {
 
 }
 
+func Test_DecodeFromEmpty_NoCompression(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "F_COUNTER",
+				Type: T_UINT,
+				Size: 32,
+			},
+		},
+		EncoderPipeline: "",
+	})
+	require.NoError(t, err)
+
+	queue := CreateStateQueue(schema)
+
+	err = queue.Decode([]byte{})
+	require.NoError(t, err)
+}
+
+func Test_DecodeFromEmpty_WithCompression(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "F_COUNTER",
+				Type: T_UINT,
+				Size: 32,
+			},
+		},
+		EncoderPipeline: "z",
+	})
+	require.NoError(t, err)
+
+	queue := CreateStateQueue(schema)
+
+	err = queue.Decode([]byte{})
+	require.NoError(t, err)
+}
+
+func Test_EncodeDecodeEmpty_NoTransposition(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "F_COUNTER",
+				Type: T_UINT,
+				Size: 32,
+			},
+		},
+		EncoderPipeline: "z",
+	})
+	require.NoError(t, err)
+
+	queue := CreateStateQueue(schema)
+	data, err := queue.Encode()
+	require.NoError(t, err)
+
+	err = queue.Decode(data)
+	require.NoError(t, err)
+}
+
+func Test_EncodeDecodeEmpty_Transposition(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "F_COUNTER",
+				Type: T_UINT,
+				Size: 32,
+			},
+		},
+		EncoderPipeline: "t:z",
+	})
+	require.NoError(t, err)
+
+	queue := CreateStateQueue(schema)
+	data, err := queue.Encode()
+	require.NoError(t, err)
+
+	err = queue.Decode(data)
+	require.NoError(t, err)
+}
+
 func Test_InvalidPushState(t *testing.T) {
 	eschema, err := CreateStateSchema(
 		&StateSchemaParams{
