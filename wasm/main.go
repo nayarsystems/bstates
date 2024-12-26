@@ -188,49 +188,49 @@ func stateQueuePush(this js.Value, args []js.Value) any {
 func stateQueuePop(this js.Value, args []js.Value) any {
 	queue, err := getStateQueueFromThis(this)
 	if err != nil {
-		return retE("can't get state queue from this: %v", err)
+		return nil
 	}
 
 	state, err := queue.Pop()
 	if err != nil {
-		return retE("can't pop state from queue: %v", err)
+		return nil
 	}
 
 	stateJs, err := stateToJs(state)
 	if err != nil {
-		return retE("can't convert state to js: %v", err)
+		return nil
 	}
 
 	data, err := queue.Encode()
 	if err != nil {
-		return retE("can't encode state queue: %v", err)
+		return nil
 	}
 
 	jsQueueData := uint8Array.New(len(data))
 	js.CopyBytesToJS(jsQueueData, data)
 	this.Set("data", jsQueueData)
 
-	return retD(stateJs)
+	return stateJs
 }
 
 func stateQueueSize(this js.Value, args []js.Value) any {
 	queue, err := getStateQueueFromThis(this)
 	if err != nil {
-		return retE("can't get state queue from this: %v", err)
+		return 0
 	}
 
-	return retD(js.ValueOf(queue.GetNumStates()))
+	return js.ValueOf(queue.GetNumStates())
 }
 
 func stateQueueToArray(this js.Value, args []js.Value) any {
 	queue, err := getStateQueueFromThis(this)
 	if err != nil {
-		return retE("can't get state queue from this: %v", err)
+		return array.New(0)
 	}
 
 	states, err := queue.GetStates()
 	if err != nil {
-		return retE("can't get states from queue: %v", err)
+		return array.New(0)
 	}
 
 	statesJs := array.New(0)
@@ -242,7 +242,7 @@ func stateQueueToArray(this js.Value, args []js.Value) any {
 		statesJs.Call("push", stateJs)
 	}
 
-	return retD(statesJs)
+	return statesJs
 }
 
 func retD(data any) map[string]any {
