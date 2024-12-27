@@ -54,7 +54,7 @@ function main() {
             ]
     }
 
-    // createStateQueue accepts an either an object or a string representing the schema
+    // createStateQueue accepts either an object containing the schema or a JSON string (result of JSON.stringify(schema))
     res = createStateQueue(schema);
     if (res.e != null) {
         console.log("Error creating queue:", res.e);
