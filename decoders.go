@@ -1,6 +1,7 @@
 package bstates
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -29,7 +30,8 @@ const (
 //   - Define constant fields that do not depend on any state field, although this might have limited practical use.
 type Decoder interface {
 	Name() FieldDecoderType               // Decoder type
-	Decode(s *State) (interface{}, error) // function called
+	Decode(s *State) (interface{}, error) // function called to get the decoded value from the state
+	Encode(s *State, v any) error         // function called to encode the value into the state
 	GetParams() map[string]interface{}    // returns a MSI
 }
 
@@ -94,6 +96,10 @@ func (d *BufferToStringDecoder) Decode(s *State) (interface{}, error) {
 	return string(fromValue[:i]), nil
 }
 
+func (d *BufferToStringDecoder) Encode(s *State, v any) error {
+	return s.Set(d.From, []byte(v.(string)))
+}
+
 // IntMapDecoder implements a [Decoder] which decodes an integer value into a string based on a mapping defined
 // in the State object.
 type IntMapDecoder struct {
@@ -144,6 +150,11 @@ func (d *IntMapDecoder) Decode(s *State) (interface{}, error) {
 		return "UNKNOWN", nil
 	}
 	return toValue, nil
+}
+
+func (d *IntMapDecoder) Encode(s *State, v any) error {
+	// This is a read-only decoder
+	return errors.New("IntMapDecoder is a read-only decoder (can't encode)")
 }
 
 // NumberToUnixTsMsDecoder implements a [Decoder] which decodes a numeric value using the following formula:
@@ -204,4 +215,16 @@ func (d *NumberToUnixTsMsDecoder) Decode(s *State) (interface{}, error) {
 	// convert to millis using given factor
 	unixTsMs := uint64(offsetDateUnixMs + int64(fromValue*d.Factor))
 	return unixTsMs, nil
+}
+
+func (d *NumberToUnixTsMsDecoder) Encode(s *State, v any) error {
+	unixTsMs, err := ei.N(v).Uint64()
+	if err != nil {
+		return err
+	}
+
+	offsetDate := time.Date(int(d.Year), time.January, 1, 0, 0, 0, 0, time.UTC)
+	offsetDateUnixMs := offsetDate.UnixMilli()
+
+	return s.Set(d.From, float64(int64(unixTsMs)-offsetDateUnixMs)/d.Factor)
 }

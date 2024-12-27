@@ -68,6 +68,17 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 	return nil, err
 }
 
+// Set updates the value of the specified field in the [State].
+//
+// It first checks if the field is a decoded field and, if so, uses the schema's encoding logic.
+// Otherwise, it updates the field using default encoding logic for the type of the field.
+func (f *State) Set(fieldName string, newValue interface{}) error {
+	if df, ok := f.schema.decodedFields[fieldName]; ok {
+		return df.Decoder.Encode(f, newValue)
+	}
+	return f.Frame.Set(fieldName, newValue)
+}
+
 func (f *State) getDecodedField(fieldName string) (value interface{}, err error) {
 	df, ok := f.schema.decodedFields[fieldName]
 	if !ok {
