@@ -1,1 +1,0 @@
-/nix/store/1hd6kq7rssk14py6v8mrdq2pn5ciiw6y-go-1.22.10/share/go/misc/wasm/wasm_exec.js
