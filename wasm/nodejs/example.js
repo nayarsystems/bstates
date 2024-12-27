@@ -54,7 +54,8 @@ function main() {
             ]
     }
 
-    const res = global.createStateQueue(schema);
+    // createStateQueue accepts an either an object or a string representing the schema
+    res = createStateQueue(schema);
     if (res.e != null) {
         console.log("Error creating queue:", res.e);
         return;
@@ -68,26 +69,69 @@ function main() {
     queue.push({"3bitUnsignedNumTest": 2, "boolTest": false,"4bitSignedNumTest": -6, "message_buf": "Hello, World 2!"});
     queue.push({"3bitUnsignedNumTest": 3, "boolTest": true, "4bitSignedNumTest": -5, "message_buf": "Hello, World 3!"});
 
-    
-    console.log("Trying to push invalid state...");
-    console.log(queue.push({"3bitUnsignedNumTest": 4, "THIS_FIELD_DOES_NOT_EXIST": true, "4bitSignedNumTest": -4, "message_buf": "Hello, World 4!"}));
-    
     console.log("Queue size:", queue.size());
+
+    console.log("Encoding queue...");
+    encodedQueue = queue.encode();
+    console.log("Encoded queue:", encodedQueue);
 
     states = queue.toArray();
     
     console.log("------------------------");
+    console.log("toArray():");
     states.forEach(state => {
         delete state.message_buf;
         console.log(state);
     });
     console.log("------------------------");
 
-    // Pop states from queue in a for and print them
     while ((state = queue.pop()) != null) {
         delete state.message_buf;
-        console.log("Pop: ", state);
+        console.log("Pop:");
+        console.log(state);
+        console.log("------------------------");
     }
 
     console.log("Queue size:", queue.size());
+
+    console.log("Decoding queue...");
+    queue.decode(encodedQueue);
+    console.log("Queue size:", queue.size());
+
+    console.log("Direct decoding to array of states...");
+    res = decodeStates(schema, encodedQueue);
+    if (res.e != null) {
+        console.log("Error decoding queue:", res.e);
+        return;
+    }
+    states = res.d;
+    console.log("------------------------");
+    states.forEach(state => {
+        stateCopy = JSON.parse(JSON.stringify(state));
+        delete stateCopy.message_buf;
+        console.log(stateCopy);
+    });
+
+    console.log("Direct encoding from array of states...");
+    res = encodeStates(schema, states);
+    if (res.e != null) {
+        console.log("Error encoding queue:", res.e);
+        return;
+    }
+    encodedQueue = res.d;
+    console.log("Encoded queue:", encodedQueue);
+
+    res = queue.decode(encodedQueue);
+    if (res.e != null) {
+        console.log("Error decoding queue:", res.e);
+        return;
+    }
+    console.log("Queue size:", queue.size());
+    console.log("toArray():");
+    states = queue.toArray();
+    states.forEach(state => {
+        delete state.message_buf;
+        console.log(state);
+    });
+
 }
