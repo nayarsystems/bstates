@@ -65,9 +65,11 @@ function main() {
     console.log("Queue created:", queue);
 
     console.log("Pushing states to queue...");
-    queue.push({"3bitUnsignedNumTest": 1, "boolTest": true, "4bitSignedNumTest": -7, "message_buf": "Hello, World 1!"});
-    queue.push({"3bitUnsignedNumTest": 2, "boolTest": false,"4bitSignedNumTest": -6, "message_buf": "Hello, World 2!"});
-    queue.push({"3bitUnsignedNumTest": 3, "boolTest": true, "4bitSignedNumTest": -5, "message_buf": "Hello, World 3!"});
+    queue.push({"3bitUnsignedNumTest": 1, "boolTest": true, "4bitSignedNumTest": -7, "message": "Hello, World 1!"});
+    queue.push({"3bitUnsignedNumTest": 2, "boolTest": false,"4bitSignedNumTest": -6, "message": "Hello, World 2!"});
+    queue.push({"3bitUnsignedNumTest": 3, "boolTest": true, "4bitSignedNumTest": -5, "message": "Hello, World 3!"});
+    // raw "message_buf" field can be used instead of "message", which is a decoded field, to encode the value in the state
+    queue.push({"3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -4, "message_buf": "Hello, World 4!"});
 
     console.log("Queue size:", queue.size());
 
