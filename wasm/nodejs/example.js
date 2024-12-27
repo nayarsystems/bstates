@@ -69,7 +69,9 @@ function main() {
     queue.push({"3bitUnsignedNumTest": 2, "boolTest": false,"4bitSignedNumTest": -6, "message": "Hello, World 2!"});
     queue.push({"3bitUnsignedNumTest": 3, "boolTest": true, "4bitSignedNumTest": -5, "message": "Hello, World 3!"});
     // raw "message_buf" field can be used instead of "message", which is a decoded field, to encode the value in the state
-    queue.push({"3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -4, "message_buf": "Hello, World 4!"});
+    queue.push({"3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -5, "message_buf":  new Uint8Array(Buffer.from("Hello, World 4!", 'utf-8'))});
+    // raw "message_buf" field can also accept a string, which will be converted to a buffer
+    queue.push({"3bitUnsignedNumTest": 5, "boolTest": false, "4bitSignedNumTest": -4, "message_buf": "Hello, World 5!"});
 
     console.log("Queue size:", queue.size());
 
