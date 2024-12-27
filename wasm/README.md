@@ -26,10 +26,10 @@ To execute the examples, you also need to create a shell with `nix develop` to e
 
 ### Node.js
 
-The `nodejs` directory contains a sample program in Node.js, which can be executed with:
+The `nodejs` directory contains a Node.js module and sample program in Node.js, which can be executed with:
 
 ```bash
-node example.js
+node nodejs/example/main.js
 ```
 
 ### Web

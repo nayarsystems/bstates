@@ -1,0 +1,12 @@
+{
+  "name": "bstates",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "bstates.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

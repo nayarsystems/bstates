@@ -20,7 +20,7 @@
           echo "======================================="
           echo "Build the wasm file from wasm directory by running \"make\"."
           echo 
-          echo "To test the NodeJs example go to nodejs directory and run  \"node index.js\"."
+          echo "To test the NodeJs example run  \"node nodejs/example/main.js\"."
           echo 
           echo "To test the web example go to web directory and:"
           echo "- run a web server: ./server.sh"
