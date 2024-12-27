@@ -1,5 +1,5 @@
 {
-  description = "Nix environment to generate the bstates wasm file and execute the nodejs example program";
+  description = "Nix environment to generate the bstates wasm file and execute wasm examples";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs";
