@@ -1,1 +1,1 @@
-/nix/store/lacb3464hmhcx0ha7z8a007bp7q990kk-tinygo-0.34.0/share/tinygo/targets/wasm_exec.js
+/nix/store/1hd6kq7rssk14py6v8mrdq2pn5ciiw6y-go-1.22.10/share/go/misc/wasm/wasm_exec.js
