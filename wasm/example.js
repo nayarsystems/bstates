@@ -1,10 +1,4 @@
-import { exit } from 'process';
-import { init as bstatesInit } from '../bstates.js';
-
-async function test() {
-    console.log("Initializing WASM module...");
-    const { createStateQueue, decodeStates, encodeStates } = await bstatesInit();
-
+export async function example(bs) {
     console.log("Creating queue...");
     const schema = {
         "version": "2.0",
@@ -27,7 +21,7 @@ async function test() {
     };
 
     // Create the state queue
-    let res = createStateQueue(schema);
+    let res = bs.createStateQueue(schema);
     if (res.e != null) {
         console.error("Error creating queue:", res.e);
         exit(1);
@@ -40,7 +34,9 @@ async function test() {
     queue.push({ "3bitUnsignedNumTest": 1, "boolTest": true, "4bitSignedNumTest": -7, "message": "Hello, World 1!" });
     queue.push({ "3bitUnsignedNumTest": 2, "boolTest": false, "4bitSignedNumTest": -6, "message": "Hello, World 2!" });
     queue.push({ "3bitUnsignedNumTest": 3, "boolTest": true, "4bitSignedNumTest": -5, "message": "Hello, World 3!" });
-    queue.push({ "3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -5, "message_buf": new Uint8Array(Buffer.from("Hello, World 4!", 'utf-8')) });
+    queue.push({ "3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -5, "message_buf": new TextEncoder().encode("Hello, World 4!") });
+    // Alternative to the previous line only in Node.js:
+    // queue.push({ "3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -5, "message_buf": new Uint8Array(Buffer.from("Hello, World 4!", 'utf-8')) });
     queue.push({ "3bitUnsignedNumTest": 5, "boolTest": false, "4bitSignedNumTest": -4, "message_buf": "Hello, World 5!" });
 
     console.log("Queue size:", queue.size());
@@ -74,7 +70,7 @@ async function test() {
     console.log("Queue size:", queue.size());
 
     console.log("Direct decoding to array of states...");
-    res = decodeStates(schema, encodedQueue);
+    res = bs.decodeStates(schema, encodedQueue);
     if (res.e != null) {
         console.error("Error decoding queue:", res.e);
         exit(1);
@@ -88,7 +84,7 @@ async function test() {
     });
 
     console.log("Direct encoding from array of states...");
-    res = encodeStates(schema, states);
+    res = bs.encodeStates(schema, states);
     if (res.e != null) {
         console.error("Error encoding queue:", res.e);
         exit(1);
@@ -108,11 +104,4 @@ async function test() {
         delete state.message_buf;
         console.log(state);
     });
-}
-
-try {
-   test();
-} catch (error) {
-    console.error("An error occurred:", error);
-    exit(1);
 }

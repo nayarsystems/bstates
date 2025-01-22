@@ -1,0 +1,19 @@
+{
+  "name": "bstates",
+  "version": "1.0.0",
+  "description": "This module exports some functions in WASM to work with bstates from a Node.js backend or a browser with JavaScript.",
+  "main": "./index.js",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
