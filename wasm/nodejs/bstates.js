@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -10,22 +10,28 @@ const __dirname = path.dirname(__filename);
 
 const wasmFilePath = path.join(__dirname, '../bstates.wasm');
 
-const go = new Go(); // `Go` comes from wasm_exec.js
+export async function init() {
+    const go = new Go(); // `Go` comes from wasm_exec.js
 
-// Synchronously load and initialize the WASM module
-const wasmBuffer = fs.readFileSync(wasmFilePath);
-const wasmModule = new WebAssembly.Module(wasmBuffer);
-const wasmInstance = new WebAssembly.Instance(wasmModule, go.importObject);
+    // Asynchronously load and initialize the WASM module
+    const wasmBuffer = await fs.readFile(wasmFilePath);
+    const wasmModule = await WebAssembly.compile(wasmBuffer);
+    const wasmInstance = await WebAssembly.instantiate(wasmModule, go.importObject);
 
-// Run the Go WASM environment
-go.run(wasmInstance);
+    // Run the Go WASM environment
+    go.run(wasmInstance);
 
-// Ensure functions are available globally
-if (typeof global.createStateQueue !== 'function') {
-    throw new Error("WASM module did not export 'createStateQueue'.");
+    // Validate exports
+    const requiredExports = ['createStateQueue', 'decodeStates', 'encodeStates'];
+    requiredExports.forEach((fn) => {
+        if (typeof global[fn] !== 'function') {
+            throw new Error(`WASM module did not export '${fn}'.`);
+        }
+    });
+
+    return {
+        createStateQueue: global.createStateQueue,
+        decodeStates: global.decodeStates,
+        encodeStates: global.encodeStates,
+    };
 }
-
-// Export the WASM functions directly
-export const createStateQueue = global.createStateQueue;
-export const decodeStates = global.decodeStates;
-export const encodeStates = global.encodeStates;
