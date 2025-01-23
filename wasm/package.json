@@ -2,19 +2,29 @@
   "name": "bstates",
   "version": "1.0.0",
   "description": "This module exports some functions in WASM to work with bstates from a Node.js backend or a browser with JavaScript.",
-  "main": "./index.js",
+  "main": "./index.cjs",
+  "module": "./index.js",
   "type": "module",
   "exports": {
-    ".": "./index.js",
-    "./example": "./example.js"
+    ".": "./index.js"
   },
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "build:wasm": "nix develop --command make",
+    "prepare": "npm run build:wasm",
+    "build": "npm run build:wasm",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=16.14.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
 }

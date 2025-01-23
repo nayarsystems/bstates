@@ -1,10 +1,18 @@
-import { load as bstatesLoad } from '../../index.js';
-import { example } from '../../example.js';
+// import case A: bstates is in "node_modules" directory
+import { load, example } from 'bstates';
+
+// import case B: bstates is not in "node_modules" directory
+// import { load } from '../../index.js';
+// import { example } from '../../example.js';
 
 (async () => {
     try {
         // Load bstates
-        const bs = await bstatesLoad("../../dist");
+        // case A: bstates is in "node_modules" directory
+        const bs = await load("./node_modules/bstates/dist");
+
+        // case B: bstates is not in "node_modules" directory
+        // const bs = await load("../../dist");
 
         // Run the example automatically
         example(bs);

@@ -4,16 +4,15 @@ import './dist/wasm_exec.js'
 
 // This function is used to load the WASM module
 export async function load(customWasmFilesPathPrefix = null) {
-    let wasmPath;
-    let fs, path, fileURLToPath;
     let wasmBuffer;
     if (isNode) {
+        let fs, path;
         // Node.js: Use 'fs/promises' to read files
         fs = (await import('fs')).promises;
         path = (await import('path')).default;
-        fileURLToPath = (await import('url')).fileURLToPath;
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
+        let fileURLToPath = (await import('url')).fileURLToPath;
+        const filePath = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(filePath);
 
         let wasmBinPathPrefix = customWasmFilesPathPrefix ||  path.join(__dirname, 'dist');
         let wasmBinPath = path.join(wasmBinPathPrefix, 'bstates.wasm');
@@ -53,3 +52,5 @@ export async function load(customWasmFilesPathPrefix = null) {
         encodeStates: globalScope.encodeStates,
     };
 }
+
+export * from './example.js'; // Export the example function
