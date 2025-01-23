@@ -12,9 +12,9 @@ GO_WASM_EXEC := $(GOROOT)/misc/wasm/wasm_exec.js
 GO_BUILD_CMD := GOOS=js GOARCH=wasm go build -o $(WASM) -tags noasm
 
 # Default target
-default: dist gobuild golink
+default: dist gobuild go_wasm_exec
 
-tinygo: tinygobuild tinygolink
+tinygo: dist tinygobuild tinygo_wasm_exec
 
 # Create the $(DIST) directory
 dist:
@@ -28,11 +28,10 @@ gobuild:
 	$(GO_BUILD_CMD)
 	@echo "File $(WASM) generated."
 
-# Create a symbolic link to go wasm_exec.js
-golink:
-	@echo "Creating a symbolic link for wasm_exec.js..."
-	ln -sf $(GO_WASM_EXEC) $(LOADER)
-	@echo "Symbolic link created: $(LOADER) -> $(GO_WASM_EXEC)"
+# Copy go wasm_exec.js
+go_wasm_exec:
+	@echo "Copying go wasm_exec.js..."
+	cp -f $(GO_WASM_EXEC) $(LOADER)
 
 # Compile the wasm file using tinygo
 tinygobuild:
@@ -40,11 +39,10 @@ tinygobuild:
 	$(TINYGO_BUILD_CMD)
 	@echo "File $(WASM) generated."
 
-# Create a symbolic link to tinygo wasm_exec.js
-tinygolink:
-	@echo "Creating a symbolic link for wasm_exec.js..."
-	ln -sf $(TINYGO_WASM_EXEC) $(LOADER)
-	@echo "Symbolic link created: $(LOADER) -> $(TINYGO_WASM_EXEC)"
+# Copy tinygo wasm_exec.js
+tinygo_wasm_exec:
+	@echo "Copying tinygo wasm_exec.js..."
+	cp -f $(TINYGO_WASM_EXEC) $(LOADER)
 
 # Clean generated files
 clean:

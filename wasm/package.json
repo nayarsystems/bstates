@@ -5,7 +5,8 @@
   "main": "./index.js",
   "type": "module",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./example": "./example.js"
   },
   "directories": {
     "example": "examples"
