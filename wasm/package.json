@@ -12,8 +12,8 @@
     "example": "examples"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js  --runInBand",
     "build:wasm": "nix develop --command make",
+    "test": "npm run build:wasm && node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "prepare": "npm run build:wasm",
     "build": "npm run build:wasm",
     "prepublishOnly": "npm run build"
