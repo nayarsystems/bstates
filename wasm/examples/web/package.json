@@ -1,6 +1,10 @@
-{
-    "scripts": {
-      "start": "../setup-example.sh && node main.js"
-    }
+{ 
+  "type": "module",
+  "scripts": {
+    "start": "node start.js"
+  },
+  "dependencies": {
+    "open": "^9.0.0"
+  }
   }
   
