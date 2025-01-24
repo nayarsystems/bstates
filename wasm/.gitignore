@@ -1,2 +1,4 @@
 /wasm_exec.js
 /bstates.wasm
+node_modules
+package-lock.json

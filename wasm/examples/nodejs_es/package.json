@@ -1,4 +1,7 @@
 {
   "main": "main.js",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "start": "../setup-example.sh && node main.js"
+  }
 }
