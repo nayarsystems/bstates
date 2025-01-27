@@ -19,13 +19,15 @@
         shellHook = ''
           echo "======================================="
           echo "Build the wasm file from wasm directory by running \"make\"."
-          echo 
-          echo "To test the NodeJs example run  \"node nodejs/example/main.js\"."
-          echo 
-          echo "To test the web example go to web directory and:"
-          echo "- run a web server: ./server.sh"
-          echo "- open a browser and go to http://localhost:8080"
-          echo "- open debug console and call bstates exported functions"
+          echo "Ensure that all npm dependencies are installed by running \"npm install\"."
+          echo ""
+          echo "The \"examples\" directory contains examples of how to use the bstates from Node.js and Browser." 
+          echo "To run an example go to the directory of an example and run \"npm start\"."
+          echo "Before running each example, you need to run \"npm install\" from the directory of the example."
+          echo "Examples:"
+          echo "- nodejs_cjs: Node.js program that follows the \"CommonJS\" style."
+          echo "- nodejs_es: Node.js program that follows the \"ES modules\" style."
+          echo "- web: client side program from browser."
           echo "======================================="
         '';
         };

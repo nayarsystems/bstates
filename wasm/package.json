@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build:wasm": "nix develop --command make",
-    "test": "npm run build:wasm && node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "npm run build:wasm && nix develop --command node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "prepare": "npm run build:wasm",
     "build": "npm run build:wasm",
     "prepublishOnly": "npm run build"
@@ -25,6 +25,8 @@
     "node": ">=16.14.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^23.2.0",
+    "node-fetch": "^3.3.2",
+    "puppeteer": "^24.1.1"
   }
 }

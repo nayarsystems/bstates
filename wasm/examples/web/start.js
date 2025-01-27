@@ -49,7 +49,7 @@ function startServer() {
 }
 
 // Run setup-example.sh
-exec(`${setupScript}`, (error, stdout, stderr) => {
+exec(`${setupScript}`, async (error, stdout, stderr) => {
     if (error) {
         console.error(`Error running setup-example.sh: ${stderr}`);
         process.exit(1);
@@ -58,12 +58,13 @@ exec(`${setupScript}`, (error, stdout, stderr) => {
 
     // Start the HTTP server
     const server = startServer();
-
-    // Open the browser after the server starts
-    setTimeout(() => {
+    if (process.env.OPEN_BROWSER !== 'false') {
+        // Wait for the server to start
+        await waitForServerReady(`http://localhost:${port}`);
         console.log(`Opening browser at http://localhost:${port}...`);
+        // Open the browser after the server starts
         open(`http://localhost:${port}`);
-    }, 2000);
+    }
 
     // Graceful shutdown on process termination
     process.on('SIGINT', () => {
@@ -74,3 +75,17 @@ exec(`${setupScript}`, (error, stdout, stderr) => {
         });
     });
 });
+
+async function waitForServerReady(url, timeout = 5000) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) return; // Server ready
+        } catch {
+            // Ignore error and retry
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('Server did not start');
+}

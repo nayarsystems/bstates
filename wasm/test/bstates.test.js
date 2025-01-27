@@ -12,7 +12,6 @@ test('createStateQueue initializes a queue with valid schema', async () => {
     const schema = {
         version: "2.0",
         encoderPipeline: "t:z",
-        decodedFields: [],
         fields: [
             { name: "testField", type: "int", size: 8 }
         ]
@@ -30,7 +29,6 @@ test('encodeStates encodes an array of states', async () => {
     const schema = {
         version: "2.0",
         encoderPipeline: "t:z",
-        decodedFields: [],
         fields: [
             { name: "testField", type: "int", size: 8 }
         ]
@@ -46,7 +44,6 @@ test('decodeStates decodes an array of states', async () => {
     const schema = {
         version: "2.0",
         encoderPipeline: "t:z",
-        decodedFields: [],
         fields: [
             { name: "testField", type: "int", size: 8 }
         ]
@@ -69,7 +66,6 @@ test('queue methods', async () => {
     const schema = {
         version: "2.0",
         encoderPipeline: "t:z",
-        decodedFields: [],
         fields: [
             { name: "testField", type: "int", size: 8 }
         ]
