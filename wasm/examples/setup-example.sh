@@ -27,22 +27,3 @@ if [ ! -L "$LINK_PATH" ]; then
     ln -s "$BSTATES_PACKAGE_DIR" "$LINK_PATH"
     echo "Symlink created: $LINK_PATH -> $BSTATES_PACKAGE_DIR"
 fi
-
-# Ensure the main project is compiled
-echo "Ensuring the bstates project is compiled..."
-
-# Check if 'make' is available
-if ! command -v make > /dev/null; then
-    echo "Error: 'make' is not installed or not available in PATH."
-    exit 1
-fi
-
-# Run 'make' in the project root
-cd "$BSTATES_PACKAGE_DIR" > /dev/null 2>&1
-if ! make; then
-    echo "Error: Failed to compile bstates. Please check the output above for details."
-    exit 1
-fi
-cd - > /dev/null 2>&1
-
-echo "bstates project compiled successfully."

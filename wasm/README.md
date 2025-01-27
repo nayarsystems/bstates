@@ -15,19 +15,15 @@ mkdir -p ~/.config/nix
 echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
 ```
 
-## How to Build
+## How to Build and Install Dependencies
 
-Before building, make sure to install all dependencies:
+To build the project and install all necessary dependencies, simply run:
 
 ```bash
 npm install
 ```
 
-To build the project, simply run:
-
-```bash
-npm run build
-```
+This will ensure that the project is built and ready to use.
 
 ## How to Test
 

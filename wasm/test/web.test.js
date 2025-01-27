@@ -1,38 +1,27 @@
 import puppeteer from 'puppeteer';
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import fetch from 'node-fetch';
 
 let browser;
 let page;
 let serverProcess;
-
-async function waitForServerReady(url, timeout = 5000) {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-        try {
-            const response = await fetch(url);
-            if (response.ok) return; // Server ready
-        } catch {
-            // Ignore error and retry
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error('Server did not start');
-}
+const port = 8080;
 
 beforeAll(async () => {
+    // Ensure web example has all dependencies installed
+    execSync('npm install', { cwd: 'examples/web' });
+    
     // Start the web server
-    serverProcess = exec('OPEN_BROWSER=false node examples/web/start.js');
-
-    // Wait for the server to start
-    await waitForServerReady('http://localhost:8080');
+    serverProcess = exec('OPEN_BROWSER=false node start.js', { cwd: 'examples/web' });
+    
+    await waitForServerReady(`http://localhost:${port}`);
 
     // Launch Puppeteer
     browser = await puppeteer.launch();
     page = await browser.newPage();
 
     // Navigate to the web application
-    await page.goto('http://localhost:8080');
+    await page.goto(`http://localhost:${port}`);
 
     // Wait for bstates to be loaded
     await page.waitForFunction(() => typeof window.bstates !== 'undefined', {
@@ -49,7 +38,7 @@ afterAll(async () => {
 });
 
 test('Server serves index.html correctly', async () => {
-    const response = await fetch('http://localhost:8080');
+    const response = await fetch(`http://localhost:${port}`);
     const html = await response.text();
 
     expect(response.status).toBe(200);
@@ -57,7 +46,7 @@ test('Server serves index.html correctly', async () => {
 });
 
 test('Server serves wasm.js correctly', async () => {
-    const response = await fetch('http://localhost:8080/main.js');
+    const response = await fetch(`http://localhost:${port}/main.js`);
 
     expect(response.status).toBe(200);
     const contentType = response.headers.get('content-type');
@@ -65,7 +54,7 @@ test('Server serves wasm.js correctly', async () => {
 });
 
 test('Server returns 404 for missing files', async () => {
-    const response = await fetch('http://localhost:8080/nonexistent-file.js');
+    const response = await fetch(`http://localhost:${port}/nonexistent-file.js`);
 
     expect(response.status).toBe(404);
 });
@@ -100,3 +89,18 @@ test('bstates.createStateQueue works as expected', async () => {
 
     expect(result).toEqual([{ field1: 123 }]);
 });
+
+
+async function waitForServerReady(url, timeout = 5000) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) return; // Server ready
+        } catch {
+            // Ignore error and retry
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error('Server did not start');
+}

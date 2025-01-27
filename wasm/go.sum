@@ -3,14 +3,10 @@ github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd h1:4MeyWzia2q0jIePfPv28
 github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd/go.mod h1:vY3hztyrLc9fGs8e9rvAhkYsSPhdryJUDlwnVDpYIfI=
 github.com/klauspost/compress v1.16.7 h1:2mk3MPGNzKyxErAw8YaohYh69+pa4sIQSC0fPGCFR9I=
 github.com/klauspost/compress v1.16.7/go.mod h1:ntbaceVETuRiXiv4DpjP66DpAtAGkEQskQzEyD//IeE=
-github.com/nayarsystems/bstates v0.7.0 h1:dMfByYTl3ntSC6qRyxJqfR2J6EWTb7yreiVY+WbYV+8=
-github.com/nayarsystems/bstates v0.7.0/go.mod h1:QCAUU+VsOBIDEoki7H62JDB8h+CJqZS2MA9rRWvspaM=
+github.com/nayarsystems/bstates v0.7.3-0.20250127124320-a8074821b5cc h1:NDxkeVf8Qc4jxs8Gi++aEMOBgY7dgOBR2qhXhg26bBY=
+github.com/nayarsystems/bstates v0.7.3-0.20250127124320-a8074821b5cc/go.mod h1:QCAUU+VsOBIDEoki7H62JDB8h+CJqZS2MA9rRWvspaM=
 github.com/nayarsystems/buffer v0.1.1 h1:ioRQ9aza2bEvPnSJKNjPcjXHhvjtDJEPOqHZQ58vtI0=
 github.com/nayarsystems/buffer v0.1.1/go.mod h1:O/MPQ7Ls2Feb/78IQ1qEdPYeUXX76I0YMfghSAUcprI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
-github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636 h1:aSISeOcal5irEhJd1M+IrApc0PdcN7e7Aj4yuEnOrfQ=
-github.com/shurcooL/go v0.0.0-20200502201357-93f07166e636/go.mod h1:TDJrrUr11Vxrven61rcy3hJMUqaf/CLWYhHNPmT14Lk=
-github.com/shurcooL/go-goon v1.0.0 h1:BCQPvxGkHHJ4WpBO4m/9FXbITVIsvAm/T66cCcCGI7E=
-github.com/shurcooL/go-goon v1.0.0/go.mod h1:2wTHMsGo7qnpmqA8ADYZtP4I1DD94JpXGQ3Dxq2YQ5w=
 github.com/stretchr/testify v1.8.2 h1:+h33VjcLVPDHtOdpUCuF+7gSuG3yGIftsP1YvFihtJ8=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

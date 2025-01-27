@@ -1,6 +1,6 @@
 { 
   "type": "module",
-  "scripts": {
+  "scripts": { 
     "start": "node start.js"
   },
   "dependencies": {
