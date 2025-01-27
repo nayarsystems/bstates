@@ -222,10 +222,7 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	s.decodedFields = map[string]DecodedStateField{}
 
 	if version == SCHEMA_VERSION_2_0 {
-		var rawFields []interface{}
-		if rawFields, err = ei.N(rawMap).M("decodedFields").Slice(); err != nil {
-			return err
-		}
+		rawFields := ei.N(rawMap).M("decodedFields").SliceZ()
 		for _, rawField := range rawFields {
 			msi, ok := rawField.(map[string]interface{})
 			if !ok {

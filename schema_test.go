@@ -85,6 +85,38 @@ func Test_Unmarshall_InvalidIntSize(t *testing.T) {
 	require.Error(t, err)
 }
 
+func Test_Unmarshall_Basic(t *testing.T) {
+	schemaRaw :=
+		`
+	{
+		"version": "2.0",
+		"fields": [
+			{
+				"name": "STATE_CODE",
+				"type": "int",
+				"size": 2
+			}
+		]
+	}
+	`
+	var schema StateSchema
+	err := json.Unmarshal([]byte(schemaRaw), &schema)
+	require.NoError(t, err)
+
+	schemaParams := &StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "STATE_CODE",
+				Type: T_INT,
+				Size: 2,
+			},
+		},
+	}
+	eSchema, err := CreateStateSchema(schemaParams)
+	require.NoError(t, err)
+	require.Equal(t, eSchema, &schema)
+}
+
 func Test_Unmarshall(t *testing.T) {
 	schemaRaw :=
 		`
