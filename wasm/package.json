@@ -21,7 +21,7 @@
   },
   "scripts": {
     "build:wasm": "nix develop --command make",
-    "test": "nix develop --command node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test": "nix develop --command node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
     "prepare": "npm run build:wasm",
     "build": "npm run build:wasm",
     "prepublishOnly": "npm run build"
