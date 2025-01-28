@@ -88,7 +88,7 @@ npm start
 
 - **Directory**: `examples/web_raw`  
 - **Overview**: This setup downloads the `.wasm` file directly from a specified directory (or URL).  
-- **How It Works**: You provide a path when calling the load function, and the WASM file is fetched over HTTP just like any other resource. This method keeps the `.wasm` separate from your JavaScript code, improving caching efficiency and allowing for streaming in modern browsers.
+- **How It Works**: You provide a path when calling the load function, and the WASM file is fetched over HTTP just like any other resource. This method keeps the `.wasm` separate from your JavaScript code.
 
 ### Web Client (Base64-Encoded WASM)
 

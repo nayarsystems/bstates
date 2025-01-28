@@ -2,8 +2,7 @@ import { load, example } from './node_modules/bstates/index.js';
 
 (async () => {
     try {
-        // Load bstates passing the directory where the bstates.wasm file is located.
-        // This will fetch the bstates.wasm file directly from the specified directory.
+        // Load bstates passing the directory where the bstates.wasm file is hosted.
          const bs = await load("./node_modules/bstates/dist");
 
         // Run the example automatically
