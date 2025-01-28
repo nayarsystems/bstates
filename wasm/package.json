@@ -35,6 +35,7 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "node-fetch": "^3.3.2",
-    "puppeteer": "^24.1.1"
+    "puppeteer": "^24.1.1",
+    "open": "^9.0.0"
   }
 }

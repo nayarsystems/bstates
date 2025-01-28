@@ -18,15 +18,19 @@ export async function load(customWasmFilesPathPrefix = null) {
         let wasmBinPath = path.join(wasmBinPathPrefix, 'bstates.wasm');
         wasmBuffer = await fs.readFile(wasmBinPath);
     } else {
-        // Browser: Use relative URL to load .wasm file
-        let wasmBinPathPrefix = customWasmFilesPathPrefix || './dist';
-        let wasmBinPath = wasmBinPathPrefix + '/bstates.wasm';
-        // Download .wasm file in the browser
-        const response = await fetch(wasmBinPath);
-        if (!response.ok) {
-            throw new Error(`Error loading WASM file at '${wasmBinPath}': ${response.statusText}`);
+        if (customWasmFilesPathPrefix !== null) {
+            // Browser: Use custom URL for the directory where the .wasm file is located
+            let wasmBinPath = customWasmFilesPathPrefix + '/bstates.wasm';
+            // Download .wasm file in the browser
+            const response = await fetch(wasmBinPath);
+            if (!response.ok) {
+                throw new Error(`Error loading WASM file at '${wasmBinPath}': ${response.statusText}`);
+            }
+            wasmBuffer = await response.arrayBuffer();
+        } else {
+            // Load wasm importing the module that exports the WASM binary as an ArrayBuffer
+            wasmBuffer = (await import('./dist/bstates-wasm.js')).wasmBinary;
         }
-        wasmBuffer = await response.arrayBuffer();
     }
     
     const go = new Go();

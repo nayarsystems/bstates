@@ -2,8 +2,10 @@ import { load, example } from './node_modules/bstates/index.js';
 
 (async () => {
     try {
-        // Load bstates
-        const bs = await load("./node_modules/bstates/dist");
+        // Load bstates wasm file by importing the module that exports the WASM binary.
+        // The module uses the Base64 string of the WASM binary to create an ArrayBuffer.
+        // This means that the fetched resource is a JS module that occupies more space than the original WASM file.
+        const bs = await load();
 
         // Run the example automatically
         example(bs);

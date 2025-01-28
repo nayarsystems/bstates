@@ -1,17 +1,46 @@
 import { createServer } from 'http';
 import { exec } from 'child_process';
-import open from 'open';
+import open from '../node_modules/open/index.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
 
 // Resolve paths
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const setupScript = path.resolve(__dirname, '../setup-example.sh');
-const exampleDir = __dirname; // Directory of the current example
+const __dirname = path.dirname(__filename); // Directory of the current example
 const port = 8080;
+
+export default function start(exampleDir) {
+    const setupScript = path.resolve(__dirname, './setup-example.sh');
+
+    // Run setup-example.sh
+    exec(`${setupScript}`, async (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error running setup-example.sh: ${stderr}`);
+            process.exit(1);
+        }
+        console.log(stdout);
+
+        // Start the HTTP server
+        const server = startServer(exampleDir);
+        if (process.env.OPEN_BROWSER !== 'false') {
+            // Wait for the server to start
+            await waitForServerReady(`http://localhost:${port}`);
+            console.log(`Opening browser at http://localhost:${port}...`);
+            // Open the browser after the server starts
+            open(`http://localhost:${port}`);
+        }
+
+        // Graceful shutdown on process termination
+        process.on('SIGINT', () => {
+            console.log('\nShutting down server...');
+            server.close(() => {
+                console.log('Server closed.');
+                process.exit(0);
+            });
+        });
+    });
+}
 
 // Function to serve static files
 function serveStaticFile(res, filePath) {
@@ -35,7 +64,7 @@ function serveStaticFile(res, filePath) {
 }
 
 // Create and start the HTTP server
-function startServer() {
+function startServer(exampleDir) {
     const server = createServer((req, res) => {
         const filePath = path.join(exampleDir, req.url === '/' ? '/index.html' : req.url);
         serveStaticFile(res, filePath);
@@ -47,34 +76,6 @@ function startServer() {
 
     return server;
 }
-
-// Run setup-example.sh
-exec(`${setupScript}`, async (error, stdout, stderr) => {
-    if (error) {
-        console.error(`Error running setup-example.sh: ${stderr}`);
-        process.exit(1);
-    }
-    console.log(stdout);
-
-    // Start the HTTP server
-    const server = startServer();
-    if (process.env.OPEN_BROWSER !== 'false') {
-        // Wait for the server to start
-        await waitForServerReady(`http://localhost:${port}`);
-        console.log(`Opening browser at http://localhost:${port}...`);
-        // Open the browser after the server starts
-        open(`http://localhost:${port}`);
-    }
-
-    // Graceful shutdown on process termination
-    process.on('SIGINT', () => {
-        console.log('\nShutting down server...');
-        server.close(() => {
-            console.log('Server closed.');
-            process.exit(0);
-        });
-    });
-});
 
 async function waitForServerReady(url, timeout = 5000) {
     const start = Date.now();

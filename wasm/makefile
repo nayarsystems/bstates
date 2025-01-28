@@ -27,6 +27,8 @@ gobuild:
 	@echo "Compiling the WASM file..."
 	$(GO_BUILD_CMD)
 	@echo "File $(WASM) generated."
+	@echo "Generating JS module..."
+	node generate-wasm-module.js
 
 # Copy go wasm_exec.js
 go_wasm_exec:
@@ -38,6 +40,8 @@ tinygobuild:
 	@echo "Compiling the WASM file..."
 	$(TINYGO_BUILD_CMD)
 	@echo "File $(WASM) generated."
+	@echo "Generating JS module..."
+	node generate-wasm-module.js
 
 # Copy tinygo wasm_exec.js
 tinygo_wasm_exec:

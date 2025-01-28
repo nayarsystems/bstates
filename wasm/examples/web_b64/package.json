@@ -1,7 +1,7 @@
 { 
   "type": "module",
   "scripts": { 
-    "start": "node start.js"
+    "start": "node ./start.js"
   },
   "dependencies": {
     "open": "^9.0.0"
