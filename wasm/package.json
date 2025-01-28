@@ -2,7 +2,15 @@
   "name": "bstates",
   "version": "1.0.0",
   "description": "This module exports some functions in WASM to work with bstates from a Node.js backend or a browser with JavaScript.",
-  "main": "./index.cjs",
+  "homepage": "https://github.com/nayarsystems/bstates/tree/wasm/wasm#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nayarsystems/bstates.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nayarsystems/bstates/issues",
+    "email": "garaje@nayarsystems.com"
+  },
   "module": "./index.js",
   "type": "module",
   "exports": {
@@ -18,11 +26,11 @@
     "build": "npm run build:wasm",
     "prepublishOnly": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": ["golang", "wasm", "nodejs", "javascript", "browser", "data-encoding", "data-decoding"],
+  "author": "Nayar <garaje@nayarsystems.com> (https://www.nayarsystems.com/)",
+  "license": "MIT",
   "engines": {
-    "node": ">=16.14.0"
+    "node": ">=23.2.0"
   },
   "devDependencies": {
     "jest": "^29.7.0",
