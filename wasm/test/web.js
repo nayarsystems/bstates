@@ -7,7 +7,7 @@ let page;
 let serverProcess;
 const port = 8080;
 
-export function run(webExample) {
+export function run(webExample, title) {
     beforeAll(async () => {
         // Ensure web example has all dependencies installed
         execSync('npm install', { cwd: webExample });
@@ -43,7 +43,7 @@ export function run(webExample) {
         const html = await response.text();
 
         expect(response.status).toBe(200);
-        expect(html).toContain('<title>Bstates example</title>'); // Check title in HTML
+        expect(html).toContain(`<title>${title}</title>`); // Check title in HTML
     });
 
     test('Server serves wasm.js correctly', async () => {
@@ -63,7 +63,7 @@ export function run(webExample) {
     test('Page loads and exposes bstates in the console', async () => {
         // Check the title of the page
         const title = await page.title();
-        expect(title).toBe('Bstates example');
+        expect(title).toBe(title);
 
         // Check if `bstates` is exposed in the console
         const bstatesExists = await page.evaluate(() => {
@@ -83,7 +83,7 @@ export function run(webExample) {
                 ]
             };
 
-            const queue = window.bstates.createStateQueue(schema).d;
+            const queue = window.bstates.createStateQueue(schema);
             queue.push({ field1: 123 });
             return queue.toArray();
         });

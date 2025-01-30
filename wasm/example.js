@@ -21,12 +21,13 @@ export async function example(bs) {
     };
 
     // Create the state queue
-    let res = bs.createStateQueue(schema);
-    if (res.e != null) {
-        console.error("Error creating queue:", res.e);
+    let queue;
+    try {
+        queue = bs.createStateQueue(schema);
+    }catch(e){
+        console.error("Error creating queue:", e);
         exit(1);
     }
-    let queue = res.d;
 
     console.log("Queue created:", queue);
 
@@ -70,12 +71,12 @@ export async function example(bs) {
     console.log("Queue size:", queue.size());
 
     console.log("Direct decoding to array of states...");
-    res = bs.decodeStates(schema, encodedQueue);
-    if (res.e != null) {
-        console.error("Error decoding queue:", res.e);
+    try {
+        states = bs.decodeStates(schema, encodedQueue);
+    } catch (e) {
+        console.error("Error decoding queue:", e);
         exit(1);
     }
-    states = res.d;
     console.log("------------------------");
     states.forEach(state => {
         let stateCopy = JSON.parse(JSON.stringify(state));
@@ -84,17 +85,18 @@ export async function example(bs) {
     });
 
     console.log("Direct encoding from array of states...");
-    res = bs.encodeStates(schema, states);
-    if (res.e != null) {
-        console.error("Error encoding queue:", res.e);
+    try {
+        encodedQueue = bs.encodeStates(schema, states);
+    } catch (e) {
+        console.error("Error encoding queue:", e);
         exit(1);
     }
-    encodedQueue = res.d;
     console.log("Encoded queue:", encodedQueue);
 
-    res = queue.decode(encodedQueue);
-    if (res.e != null) {
-        console.error("Error decoding queue:", res.e);
+    try {
+        queue = bs.createStateQueue(schema);
+    } catch (e) {
+        console.error("Error decoding queue:", e);
         exit(1);
     }
     console.log("Queue size:", queue.size());

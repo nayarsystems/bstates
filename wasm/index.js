@@ -50,11 +50,56 @@ export async function load(customWasmFilesPathPrefix = null) {
         }
     }
     
+    const createStateQueueRaw = globalScope.createStateQueue;
+    const decodeStatesRaw = globalScope.decodeStates;
+    const encodeStatesRaw = globalScope.encodeStates;
+
+    const createStateQueue = wrapCreateStateQueue(createStateQueueRaw);
+    const decodeStates = (...args) => checkError(decodeStatesRaw(...args));
+    const encodeStates = (...args) => checkError(encodeStatesRaw(...args));
+
     return {
-        createStateQueue: globalScope.createStateQueue,
-        decodeStates: globalScope.decodeStates,
-        encodeStates: globalScope.encodeStates,
-    };
+        createStateQueue,
+        decodeStates,
+        encodeStates,
+    };    
 }
+
+function wrapCreateStateQueue(createStateQueueFn) {
+    return (schema) => {
+      const res = createStateQueueFn(schema);
+   
+      const queueObj = checkError(res);
+  
+      const wrappedQueue = {
+        push: (...args) => checkError(queueObj.push(...args)),
+        pop: (...args) => checkError(queueObj.pop(...args)),
+        size: (...args) => checkError(queueObj.size(...args)),
+        toArray: (...args) => checkError(queueObj.toArray(...args)),
+        decode: (...args) => checkError(queueObj.decode(...args)),
+        encode: (...args) => checkError(queueObj.encode(...args)),
+  
+        get schema() {
+          return queueObj.schema;
+        },
+        get data() {
+          return queueObj.data;
+        },
+      };
+  
+      return wrappedQueue;
+    };
+  }
+  
+function checkError(res) {
+    if (!res) {
+      throw new Error("No result returned from Go function.");
+    }
+    if (res.e) {
+      throw new Error(res.e);
+    }
+    return res.d;
+ }
+
 
 export * from './example.js'; // Export the example function

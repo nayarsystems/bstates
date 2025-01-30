@@ -68,35 +68,35 @@ func stateQueuePush(this js.Value, args []js.Value) any {
 	jsQueueData := uint8Array.New(len(data))
 	js.CopyBytesToJS(jsQueueData, data)
 	this.Set("data", jsQueueData)
-	return nil
+	return retD(nil)
 }
 
 func stateQueuePop(this js.Value, args []js.Value) any {
 	queue, err := getStateQueueFromJsValue(this)
 	if err != nil {
-		return nil
+		return retE("can't get state queue from this: %v", err)
 	}
 
 	state, err := queue.Pop()
 	if err != nil {
-		return nil
+		return array.New(0)
 	}
 
 	stateJs, err := stateToJsValue(state)
 	if err != nil {
-		return nil
+		return retE("can't convert state to js: %v", err)
 	}
 
 	data, err := queue.Encode()
 	if err != nil {
-		return nil
+		return retE("can't encode state queue: %v", err)
 	}
 
 	jsQueueData := uint8Array.New(len(data))
 	js.CopyBytesToJS(jsQueueData, data)
 	this.Set("data", jsQueueData)
 
-	return stateJs
+	return retD(stateJs)
 }
 
 func stateQueueSize(this js.Value, args []js.Value) any {
@@ -105,18 +105,18 @@ func stateQueueSize(this js.Value, args []js.Value) any {
 		return 0
 	}
 
-	return js.ValueOf(queue.GetNumStates())
+	return retD(js.ValueOf(queue.GetNumStates()))
 }
 
 func stateQueueToArray(this js.Value, args []js.Value) any {
 	queue, err := getStateQueueFromJsValue(this)
 	if err != nil {
-		return array.New(0)
+		return retE("can't get state queue from this: %v", err)
 	}
 
 	states, err := queue.GetStates()
 	if err != nil {
-		return array.New(0)
+		return retE("can't get states from queue: %v", err)
 	}
 
 	statesJs := array.New(0)
@@ -128,7 +128,7 @@ func stateQueueToArray(this js.Value, args []js.Value) any {
 		statesJs.Call("push", stateJs)
 	}
 
-	return statesJs
+	return retD(statesJs)
 }
 
 func stateQueueDecode(this js.Value, args []js.Value) any {
@@ -164,7 +164,7 @@ func stateQueueDecode(this js.Value, args []js.Value) any {
 }
 
 func stateQueueEncode(this js.Value, args []js.Value) any {
-	return this.Get("data")
+	return retD(this.Get("data"))
 }
 
 func decodeStates(this js.Value, args []js.Value) any {

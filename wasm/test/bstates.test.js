@@ -18,10 +18,18 @@ test('createStateQueue initializes a queue with valid schema', async () => {
     };
 
     // Create the state queue with the schema
-    const result = createStateQueue(schema);
-    expect(result.e).toBeNull();
-    expect(result.d).toBeDefined();
-    expect(typeof result.d.push).toBe('function');
+    let queue = createStateQueue(schema);
+    expect(queue).toBeDefined();
+    expect(typeof queue.push).toBe('function');
+});
+
+test('createStateQueue initializes a queue with invalid schema', async () => {
+    const { createStateQueue } = await load();
+    const schema = {
+    };
+
+    // Create the state queue with the schema
+    expect(() => createStateQueue(schema)).toThrow();
 });
 
 test('encodeStates encodes an array of states', async () => {
@@ -34,9 +42,8 @@ test('encodeStates encodes an array of states', async () => {
         ]
     };
     let states = [{ testField: 123 }];
-    let result = encodeStates(schema, states);
-    expect(result.e).toBeNull();
-    expect(result.d).toBeInstanceOf(Uint8Array);
+    let encodedStates = encodeStates(schema, states);
+    expect(encodedStates).toBeInstanceOf(Uint8Array);
 });
 
 test('decodeStates decodes an array of states', async () => {
@@ -51,14 +58,12 @@ test('decodeStates decodes an array of states', async () => {
 
     // Encode the list of states following the schema
     let states = [{ testField: 123 }, { testField: 124 }];
-    let result = encodeStates(schema, states);
-    expect(result.e).toBeNull();
-    expect(result.d).toBeInstanceOf(Uint8Array);
+    let encodedStates = encodeStates(schema, states);
+    expect(encodedStates).toBeInstanceOf(Uint8Array);
 
     // Decode the the list of states
-    result = decodeStates(schema, result.d);
-    expect(result.e).toBeNull();
-    expect(result.d).toEqual([{ testField: 123 }, { testField: 124 }]);
+    let decodedStates = decodeStates(schema, encodedStates);
+    expect(decodedStates).toEqual([{ testField: 123 }, { testField: 124 }]);
 });
 
 test('queue methods', async () => {
@@ -72,7 +77,7 @@ test('queue methods', async () => {
     };
 
     // Create the state queue with the schema
-    const queue = createStateQueue(schema).d;
+    const queue = createStateQueue(schema);
 
     // Push a state to the queue (state must match schema)
     queue.push({ testField: 123 });
@@ -96,7 +101,7 @@ test('queue methods', async () => {
 
     // Decode the encoded queue. It must match the states pushed
     const decodedQueue = decodeStates(schema, encodedQueue);
-    expect(decodedQueue.d).toEqual([{ testField: 124 }]);
+    expect(decodedQueue).toEqual([{ testField: 124 }]);
 
     // Clear the queue
     queue.pop();
@@ -106,8 +111,7 @@ test('queue methods', async () => {
     expect(size).toBe(0);
 
     // Reload the queue from the encoded queue
-    let res = queue.decode(encodedQueue);
-    expect(res.e).toBeNull();
+    queue.decode(encodedQueue);
 
     // Get the size of the queue. It must be 1
     size = queue.size();
