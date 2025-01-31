@@ -46,6 +46,14 @@ test('encodeStates encodes an array of states', async () => {
     expect(encodedStates).toBeInstanceOf(Uint8Array);
 });
 
+test('encodeStates error from invalid schema', async () => {
+    const { encodeStates } = await load();
+    const schema = {
+    };
+    let states = [{ testField: 123 }];
+    expect(() => encodeStates(schema, states)).toThrow();
+});
+
 test('decodeStates decodes an array of states', async () => {
     const { createStateQueue, encodeStates, decodeStates } = await load();
     const schema = {
@@ -64,6 +72,29 @@ test('decodeStates decodes an array of states', async () => {
     // Decode the the list of states
     let decodedStates = decodeStates(schema, encodedStates);
     expect(decodedStates).toEqual([{ testField: 123 }, { testField: 124 }]);
+});
+
+test('decodeStates error from wrong schema', async () => {
+    const { createStateQueue, encodeStates, decodeStates } = await load();
+    let schema = {
+        version: "2.0",
+        fields: [
+            { name: "testField", type: "int", size: 8 }
+        ]
+    };
+
+    // Encode the list of states following the schema
+    let states = [{ testField: 123 }, { testField: 124 }];
+    let encodedStates = encodeStates(schema, states);
+    expect(encodedStates).toBeInstanceOf(Uint8Array);
+
+    schema = {
+        version: "2.0",
+        fields: [
+            { name: "testField", type: "int", size: 32 },
+        ]
+    };
+    expect(() => decodeStates(schema, encodedStates)).toThrow();
 });
 
 test('queue methods', async () => {
