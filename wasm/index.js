@@ -55,8 +55,8 @@ export async function load(customWasmFilesPathPrefix = null) {
     const encodeStatesRaw = globalScope.encodeStates;
 
     const createStateQueue = wrapCreateStateQueue(createStateQueueRaw);
-    const decodeStates = (...args) => checkError(decodeStatesRaw(...args));
-    const encodeStates = (...args) => checkError(encodeStatesRaw(...args));
+    const decodeStates = wrapGoFunc(decodeStatesRaw);
+    const encodeStates = wrapGoFunc(encodeStatesRaw);
 
     return {
         createStateQueue,
@@ -66,40 +66,75 @@ export async function load(customWasmFilesPathPrefix = null) {
 }
 
 function wrapCreateStateQueue(createStateQueueFn) {
-    return (schema) => {
-      const res = createStateQueueFn(schema);
-   
-      const queueObj = checkError(res);
+  return (schema) => {
+    const res = createStateQueueFn(schema);
   
-      const wrappedQueue = {
-        push: (...args) => checkError(queueObj.push(...args)),
-        pop: (...args) => checkError(queueObj.pop(...args)),
-        size: (...args) => checkError(queueObj.size(...args)),
-        toArray: (...args) => checkError(queueObj.toArray(...args)),
-        decode: (...args) => checkError(queueObj.decode(...args)),
-        encode: (...args) => checkError(queueObj.encode(...args)),
-  
-        get schema() {
-          return queueObj.schema;
-        },
-        get data() {
-          return queueObj.data;
-        },
-      };
-  
-      return wrappedQueue;
+    const queueObj = checkError(res);
+
+    const wrappedQueue = {
+      push: (...args) => checkError(queueObj.push(...args.map(normalizeBinaryArg))),
+      pop: (...args) => checkError(queueObj.pop(...args.map(normalizeBinaryArg))),
+      size: (...args) => checkError(queueObj.size(...args.map(normalizeBinaryArg))),
+      toArray: (...args) => checkError(queueObj.toArray(...args.map(normalizeBinaryArg))),
+      decode: (...args) => checkError(queueObj.decode(...args.map(normalizeBinaryArg))),
+      encode: (...args) => checkError(queueObj.encode(...args.map(normalizeBinaryArg))),
+
+      get schema() {
+        return queueObj.schema;
+      },
+      get data() {
+        return queueObj.data;
+      },
     };
-  }
+
+    return wrappedQueue;
+  };
+}
   
 function checkError(res) {
-    if (!res) {
-      throw new Error("No result returned from Go function.");
-    }
-    if (res.e) {
-      throw new Error(res.e);
-    }
-    return res.d;
- }
+  if (!res) {
+    throw new Error("No result returned from Go function.");
+  }
+  if (res.e) {
+    throw new Error(res.e);
+  }
+  return res.d;
+}
 
+function wrapGoFunc(goFunc) {
+  return (...args) => {
+    const normalizedArgs = args.map(normalizeBinaryArg);
+    const result = goFunc(...normalizedArgs);
+    return checkError(result); // lanza excepción si e != null
+  };
+}
+
+function normalizeBinaryArg(arg) {
+  // Node.js Buffer -> Uint8Array
+  if (typeof Buffer !== 'undefined' && arg instanceof Buffer) {
+    return new Uint8Array(arg.buffer, arg.byteOffset, arg.byteLength);
+  }
+
+  // ArrayBuffer -> Uint8Array
+  if (arg instanceof ArrayBuffer) {
+    return new Uint8Array(arg);
+  }
+
+  // if (
+  //   arg instanceof Uint8Array ||
+  //   arg instanceof Uint8ClampedArray ||
+  //   arg instanceof Int8Array ||
+  //   arg instanceof Uint16Array ||
+  //   arg instanceof Int16Array ||
+  //   arg instanceof Uint32Array ||
+  //   arg instanceof Int32Array ||
+  //   arg instanceof Float32Array ||
+  //   arg instanceof Float64Array
+  // ) {
+      
+  // }
+
+  return arg;
+}
 
 export * from './example.js'; // Export the example function
