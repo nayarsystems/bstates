@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"crypto/sha256"
 
@@ -364,11 +363,6 @@ type StateField struct {
 	Size         int    // size in bits
 	DefaultValue interface{}
 	Type         StateFieldType
-
-	// Deprecated: schema must not include this kind of field information
-	LossyDebouncing time.Duration
-	// Deprecated: schema must not include this kind of field information
-	LossyThrottle time.Duration
 }
 
 // MarshalJSON serializes the StateField to JSON format.
@@ -395,8 +389,6 @@ func (e *StateField) UnmarshalJSON(b []byte) error {
 func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	rawMap := map[string]interface{}{}
 	rawMap["name"] = e.Name
-	rawMap["lossyDebouncingMs"] = e.LossyDebouncing.Milliseconds()
-	rawMap["lossyThrottleMs"] = e.LossyThrottle.Milliseconds()
 	var fieldTypeStr string
 	switch e.Type {
 	case T_INT:
@@ -429,17 +421,6 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 	if typeStr, err = ei.N(rawField).M("type").String(); err != nil {
 		return err
 	}
-	var lossyDebouncingMs uint
-	if lossyDebouncingMs, err = ei.N(rawField).M("lossyDebouncingMs").Uint(); err != nil {
-		lossyDebouncingMs = 0
-	}
-	e.LossyDebouncing = time.Millisecond * time.Duration(lossyDebouncingMs)
-
-	var lossyThrottleMs uint
-	if lossyThrottleMs, err = ei.N(rawField).M("lossyThrottleMs").Uint(); err != nil {
-		lossyThrottleMs = 0
-	}
-	e.LossyThrottle = time.Millisecond * time.Duration(lossyThrottleMs)
 
 	e.Size = ei.N(rawField).M("size").IntZ()
 	e.DefaultValue = ei.N(rawField).M("defaultValue").RawZ()
