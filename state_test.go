@@ -1,10 +1,9 @@
 package bstates
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
 )
 
 func Test_StatesToMsiStates(t *testing.T) {
@@ -20,6 +19,13 @@ func Test_StatesToMsiStates(t *testing.T) {
 				DefaultValue: -1,
 				Type:         T_INT,
 				Size:         3,
+			},
+			{
+				Name:         "F_FIXED",
+				DefaultValue: -5.12,
+				Type:         T_FIXED,
+				Size:         10,
+				Decimals:     2,
 			},
 		},
 		DecodedFields: []DecodedStateField{
@@ -49,6 +55,7 @@ func Test_StatesToMsiStates(t *testing.T) {
 
 	state1.Set("F_FLOAT32", 2.7)
 	state1.Set("F_INT32", -2)
+	state1.Set("F_FIXED", 5.11)
 
 	data, err := StatesToMsiStates([]*State{state0, state1})
 	require.Nil(t, err)
@@ -57,11 +64,13 @@ func Test_StatesToMsiStates(t *testing.T) {
 		{
 			"F_FLOAT32": float32(1.5),
 			"F_INT32":   -1,
+			"F_FIXED":   -5.12,
 			"TYPE":      "TYPE B",
 		},
 		{
 			"F_FLOAT32": float32(2.7),
 			"F_INT32":   -2,
+			"F_FIXED":   5.11,
 			"TYPE":      "TYPE A",
 		},
 	}
@@ -81,6 +90,13 @@ func Test_GetDeltaMsiState(t *testing.T) {
 				DefaultValue: -1,
 				Type:         T_INT,
 				Size:         3,
+			},
+			{
+				Name:         "F_FIXED",
+				DefaultValue: -5.12,
+				Type:         T_FIXED,
+				Size:         10,
+				Decimals:     2,
 			},
 			{
 				Name:         "F_STRING_BUFFER",
@@ -215,8 +231,113 @@ func Test_GetDeltaMsiState(t *testing.T) {
 	require.Equal(t, edata, data)
 
 	state0 = state1.GetCopy()
+	state1.Set("F_FIXED", 5.11)
+	data, err = GetDeltaMsiState(state0, state1)
+	require.Nil(t, err)
+	require.Equal(t, map[string]interface{}{
+		"F_FIXED": 5.11,
+	}, data)
+
+	state0 = state1.GetCopy()
 	edata = map[string]interface{}{}
 	data, err = GetDeltaMsiState(state0, state1)
 	require.Nil(t, err)
 	require.Equal(t, edata, data)
+}
+
+func Test_FixedPoint(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name:         "negative",
+				DefaultValue: -5.10,
+				Type:         T_FIXED,
+				Size:         10,
+				Decimals:     2,
+			},
+			{
+				Name:         "positive",
+				DefaultValue: 5.10,
+				Type:         T_FIXED,
+				Size:         10,
+				Decimals:     2,
+			},
+		},
+	})
+	require.Nil(t, err)
+	state0, err := CreateState(schema)
+	require.NoError(t, err)
+
+	v, err := state0.Get("negative")
+	require.NoError(t, err)
+	require.Equal(t, -5.10, v)
+
+	v, err = state0.Get("positive")
+	require.NoError(t, err)
+	require.Equal(t, 5.10, v)
+
+	err = state0.Set("negative", -5.12)
+	require.NoError(t, err)
+
+	err = state0.Set("positive", 5.11)
+	require.NoError(t, err)
+
+	v, err = state0.Get("negative")
+	require.NoError(t, err)
+	require.Equal(t, -5.12, v)
+
+	v, err = state0.Get("positive")
+	require.NoError(t, err)
+	require.Equal(t, 5.11, v)
+
+	state0Raw, err := state0.Encode()
+	require.NoError(t, err)
+
+	state1, err := CreateState(schema)
+	require.NoError(t, err)
+
+	err = state1.Decode(state0Raw)
+	require.NoError(t, err)
+
+	v, err = state1.Get("negative")
+	require.NoError(t, err)
+	require.Equal(t, -5.12, v)
+
+	v, err = state1.Get("positive")
+	require.NoError(t, err)
+	require.Equal(t, 5.11, v)
+
+	// Try to encode a real numbers that can't be represented as fixed point of size 10 and 2 decimals
+	// (2's complement range: [−2N−1, 2N−1 − 1])
+	err = state1.Set("negative", -5.13)
+	require.NoError(t, err)
+
+	err = state1.Set("positive", 5.12)
+	require.NoError(t, err)
+
+	// If we get the value back, no error is expected since it has not been encoded yet
+	v, err = state1.Get("negative")
+	require.NoError(t, err)
+	require.Equal(t, -5.13, v)
+
+	v, err = state1.Get("positive")
+	require.NoError(t, err)
+	require.Equal(t, 5.12, v)
+
+	// Now let's encode it. No error is expected, but wrong values will be retrived when decoding
+	state1Raw, err := state1.Encode()
+	require.NoError(t, err)
+
+	state2, err := CreateState(schema)
+	require.NoError(t, err)
+	err = state2.Decode(state1Raw)
+	require.NoError(t, err)
+
+	v, err = state2.Get("negative")
+	require.NoError(t, err)
+	require.NotEqual(t, -5.13, v) // The value could not be encoded, so it should not be equal to -5.13
+
+	v, err = state2.Get("positive")
+	require.NoError(t, err)
+	require.NotEqual(t, 5.12, v) // The value could not be encoded, so it should not be equal to 5.12
 }

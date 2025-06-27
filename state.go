@@ -2,8 +2,9 @@ package bstates
 
 import (
 	"fmt"
-
+	"github.com/jaracil/ei"
 	"github.com/nayarsystems/buffer/frame"
+	"math"
 )
 
 // State represents a system state in a point of time.
@@ -18,6 +19,9 @@ func CreateState(schema *StateSchema) (*State, error) {
 	f := frame.CreateFrame()
 	fields := []*frame.FieldDesc{}
 	for _, f := range schema.GetFields() {
+		if f.Type == T_FIXED {
+			f.DefaultValue = toFixedPoint(f.DefaultValue, f.fixedPointCachedFactor)
+		}
 		fd := &frame.FieldDesc{
 			Name:         f.Name,
 			Size:         f.Size,
@@ -59,6 +63,13 @@ func (e *State) GetSchema() *StateSchema {
 func (f *State) Get(fieldName string) (value interface{}, err error) {
 	v, err := f.Frame.Get(fieldName)
 	if err == nil {
+		field, exists := f.schema.fieldsMap[fieldName]
+		if !exists {
+			return nil, fmt.Errorf("field \"%s\" not found in schema", fieldName)
+		}
+		if field.Type == T_FIXED {
+			v = fromFixedPoint(v, field.fixedPointCachedFactor)
+		}
 		return v, nil
 	}
 	v, err = f.getDecodedField(fieldName)
@@ -76,7 +87,23 @@ func (f *State) Set(fieldName string, newValue interface{}) error {
 	if df, ok := f.schema.decodedFields[fieldName]; ok {
 		return df.Decoder.Encode(f, newValue)
 	}
+	field, ok := f.schema.fieldsMap[fieldName]
+	if !ok {
+		return fmt.Errorf("field \"%s\" not found in schema", fieldName)
+	}
+	if field.Type == T_FIXED {
+		newValue = toFixedPoint(newValue, field.fixedPointCachedFactor)
+	}
+
 	return f.Frame.Set(fieldName, newValue)
+}
+
+func toFixedPoint(v any, factor float64) int64 {
+	return int64(math.Round(ei.N(v).Float64Z() * factor))
+}
+
+func fromFixedPoint(v any, factor float64) float64 {
+	return ei.N(v).Float64Z() / factor
 }
 
 func (f *State) getDecodedField(fieldName string) (value interface{}, err error) {

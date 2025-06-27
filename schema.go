@@ -1,17 +1,16 @@
 package bstates
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/jaracil/ei"
+	"math"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-
-	"crypto/sha256"
-
-	"github.com/jaracil/ei"
 )
 
 // encoderPipeline options
@@ -31,6 +30,7 @@ const (
 type StateSchema struct {
 	meta            map[string]any                   // Meta data associated with the schema
 	fields          []StateField                     // List of state fields defined in the schema
+	fieldsMap       map[string]*StateField           // Map of field names to StateField objects for quick access
 	decodedFields   map[string]DecodedStateField     // List of decoders defined in the schema
 	fieldsBitSize   int                              // Total size of fields in bits
 	fieldsByteSize  int                              // Total size of fields in bytes
@@ -59,6 +59,7 @@ func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 	if err = e.setPipelines(params.EncoderPipeline); err != nil {
 		return nil, err
 	}
+	e.fieldsMap = map[string]*StateField{}
 	for _, field := range params.Fields {
 		err := field.normalize()
 		if err != nil {
@@ -66,6 +67,12 @@ func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 		}
 		e.fieldsBitSize += field.Size
 		e.fields = append(e.fields, field)
+		if _, exists := e.fieldsMap[field.Name]; exists {
+			return nil, fmt.Errorf("duplicate field name: %s", field.Name)
+		}
+		// copy field
+		fieldCopy := field
+		e.fieldsMap[field.Name] = &fieldCopy
 	}
 	e.updateByteSize()
 
@@ -179,6 +186,7 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	if rawFields, err = ei.N(rawMap).M("fields").Slice(); err != nil {
 		return err
 	}
+	s.fieldsMap = map[string]*StateField{}
 	s.fields = []StateField{}
 	for _, rawField := range rawFields {
 		msi, ok := rawField.(map[string]interface{})
@@ -191,11 +199,11 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		s.fieldsBitSize += field.Size
-		if err != nil {
-			return err
-		}
 		s.fields = append(s.fields, field)
-
+		if _, exists := s.fieldsMap[field.Name]; exists {
+			return fmt.Errorf("duplicate field name: %s", field.Name)
+		}
+		s.fieldsMap[field.Name] = &field
 	}
 	s.updateByteSize()
 
@@ -355,6 +363,7 @@ const (
 	T_FLOAT64
 	T_BOOL
 	T_BUFFER
+	T_FIXED
 )
 
 // StateField defines a field in a [StateSchema].
@@ -363,6 +372,9 @@ type StateField struct {
 	Size         int    // size in bits
 	DefaultValue interface{}
 	Type         StateFieldType
+	Decimals     uint // Number of decimal places for fixed-point fields, ignored for non-fixed types
+
+	fixedPointCachedFactor float64 // Cached factor for fixed-point fields, used to avoid recalculating it multiple times
 }
 
 // MarshalJSON serializes the StateField to JSON format.
@@ -403,6 +415,9 @@ func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 		fieldTypeStr = "float64"
 	case T_BUFFER:
 		fieldTypeStr = "buffer"
+	case T_FIXED:
+		fieldTypeStr = "fixed"
+		rawMap["decimals"] = e.Decimals
 	}
 	rawMap["type"] = fieldTypeStr
 	rawMap["size"] = e.Size
@@ -437,6 +452,9 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 		e.Type = T_FLOAT64
 	case typeStr == "buffer":
 		e.Type = T_BUFFER
+	case typeStr == "fixed":
+		e.Type = T_FIXED
+		e.Decimals = ei.N(rawField).M("decimals").UintZ()
 	default:
 		return fmt.Errorf("unkown field type '%s'", typeStr)
 	}
@@ -455,9 +473,18 @@ func (e *StateField) normalize() error {
 		defaultValue = int64(0)
 	case T_UINT:
 		if e.Size > 64 || e.Size <= 0 {
-			return fmt.Errorf("invalid field size for int type (must be: 0 < size <= 64)")
+			return fmt.Errorf("invalid field size for uint type (must be: 0 < size <= 64)")
 		}
 		defaultValue = uint64(0)
+	case T_FIXED:
+		if e.Size > 64 || e.Size <= 0 {
+			return fmt.Errorf("invalid field size for fixed point type (must be: 0 < size <= 64)")
+		}
+		defaultValue = float64(0)
+		if e.Decimals == 0 {
+			return fmt.Errorf("'decimals' must be > 0 for fixed point type")
+		}
+		e.fixedPointCachedFactor = math.Pow(10, float64(e.Decimals))
 	case T_BOOL:
 		e.Size = 1
 		defaultValue = false
@@ -496,6 +523,8 @@ func (e *StateField) normalize() error {
 			default:
 				e.DefaultValue, err = ei.N(e.DefaultValue).Uint64()
 			}
+		case T_FIXED:
+			e.DefaultValue, err = ei.N(e.DefaultValue).Float64()
 		case T_BOOL:
 			e.DefaultValue, err = ei.N(e.DefaultValue).Bool()
 		case T_FLOAT32:
