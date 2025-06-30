@@ -364,6 +364,7 @@ const (
 	T_BOOL
 	T_BUFFER
 	T_FIXED
+	T_UFIXED
 )
 
 // StateField defines a field in a [StateSchema].
@@ -418,6 +419,9 @@ func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	case T_FIXED:
 		fieldTypeStr = "fixed"
 		rawMap["decimals"] = e.Decimals
+	case T_UFIXED:
+		fieldTypeStr = "ufixed"
+		rawMap["decimals"] = e.Decimals
 	}
 	rawMap["type"] = fieldTypeStr
 	rawMap["size"] = e.Size
@@ -455,6 +459,9 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 	case typeStr == "fixed":
 		e.Type = T_FIXED
 		e.Decimals = ei.N(rawField).M("decimals").UintZ()
+	case typeStr == "ufixed":
+		e.Type = T_UFIXED
+		e.Decimals = ei.N(rawField).M("decimals").UintZ()
 	default:
 		return fmt.Errorf("unkown field type '%s'", typeStr)
 	}
@@ -476,7 +483,7 @@ func (e *StateField) normalize() error {
 			return fmt.Errorf("invalid field size for uint type (must be: 0 < size <= 64)")
 		}
 		defaultValue = uint64(0)
-	case T_FIXED:
+	case T_FIXED, T_UFIXED:
 		if e.Size > 64 || e.Size <= 0 {
 			return fmt.Errorf("invalid field size for fixed point type (must be: 0 < size <= 64)")
 		}
@@ -523,7 +530,7 @@ func (e *StateField) normalize() error {
 			default:
 				e.DefaultValue, err = ei.N(e.DefaultValue).Uint64()
 			}
-		case T_FIXED:
+		case T_FIXED, T_UFIXED:
 			e.DefaultValue, err = ei.N(e.DefaultValue).Float64()
 		case T_BOOL:
 			e.DefaultValue, err = ei.N(e.DefaultValue).Bool()

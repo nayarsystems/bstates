@@ -27,6 +27,13 @@ func Test_StatesToMsiStates(t *testing.T) {
 				Size:         10,
 				Decimals:     2,
 			},
+			{
+				Name:         "F_UFIXED",
+				DefaultValue: 10.23,
+				Type:         T_UFIXED,
+				Size:         10,
+				Decimals:     2,
+			},
 		},
 		DecodedFields: []DecodedStateField{
 			{
@@ -56,6 +63,7 @@ func Test_StatesToMsiStates(t *testing.T) {
 	state1.Set("F_FLOAT32", 2.7)
 	state1.Set("F_INT32", -2)
 	state1.Set("F_FIXED", 5.11)
+	state1.Set("F_UFIXED", 10.22)
 
 	data, err := StatesToMsiStates([]*State{state0, state1})
 	require.Nil(t, err)
@@ -65,12 +73,14 @@ func Test_StatesToMsiStates(t *testing.T) {
 			"F_FLOAT32": float32(1.5),
 			"F_INT32":   -1,
 			"F_FIXED":   -5.12,
+			"F_UFIXED":  10.23,
 			"TYPE":      "TYPE B",
 		},
 		{
 			"F_FLOAT32": float32(2.7),
 			"F_INT32":   -2,
 			"F_FIXED":   5.11,
+			"F_UFIXED":  10.22,
 			"TYPE":      "TYPE A",
 		},
 	}
@@ -95,6 +105,13 @@ func Test_GetDeltaMsiState(t *testing.T) {
 				Name:         "F_FIXED",
 				DefaultValue: -5.12,
 				Type:         T_FIXED,
+				Size:         10,
+				Decimals:     2,
+			},
+			{
+				Name:         "F_UFIXED",
+				DefaultValue: 10.23,
+				Type:         T_UFIXED,
 				Size:         10,
 				Decimals:     2,
 			},
@@ -239,6 +256,14 @@ func Test_GetDeltaMsiState(t *testing.T) {
 	}, data)
 
 	state0 = state1.GetCopy()
+	state1.Set("F_UFIXED", 10.22)
+	data, err = GetDeltaMsiState(state0, state1)
+	require.Nil(t, err)
+	require.Equal(t, map[string]interface{}{
+		"F_UFIXED": 10.22,
+	}, data)
+
+	state0 = state1.GetCopy()
 	edata = map[string]interface{}{}
 	data, err = GetDeltaMsiState(state0, state1)
 	require.Nil(t, err)
@@ -262,6 +287,13 @@ func Test_FixedPoint(t *testing.T) {
 				Size:         10,
 				Decimals:     2,
 			},
+			{
+				Name:         "unsigned",
+				DefaultValue: 10.23,
+				Type:         T_UFIXED,
+				Size:         10,
+				Decimals:     2,
+			},
 		},
 	})
 	require.Nil(t, err)
@@ -276,10 +308,17 @@ func Test_FixedPoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 5.10, v)
 
+	v, err = state0.Get("unsigned")
+	require.NoError(t, err)
+	require.Equal(t, 10.23, v)
+
 	err = state0.Set("negative", -5.12)
 	require.NoError(t, err)
 
 	err = state0.Set("positive", 5.11)
+	require.NoError(t, err)
+
+	err = state0.Set("unsigned", 10.22)
 	require.NoError(t, err)
 
 	v, err = state0.Get("negative")
@@ -289,6 +328,10 @@ func Test_FixedPoint(t *testing.T) {
 	v, err = state0.Get("positive")
 	require.NoError(t, err)
 	require.Equal(t, 5.11, v)
+
+	v, err = state0.Get("unsigned")
+	require.NoError(t, err)
+	require.Equal(t, 10.22, v)
 
 	state0Raw, err := state0.Encode()
 	require.NoError(t, err)
@@ -307,6 +350,10 @@ func Test_FixedPoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 5.11, v)
 
+	v, err = state1.Get("unsigned")
+	require.NoError(t, err)
+	require.Equal(t, 10.22, v)
+
 	// Try to encode a real numbers that can't be represented as fixed point of size 10 and 2 decimals
 	// (2's complement range: [−2N−1, 2N−1 − 1])
 	err = state1.Set("negative", -5.13)
@@ -314,6 +361,11 @@ func Test_FixedPoint(t *testing.T) {
 
 	err = state1.Set("positive", 5.12)
 	require.NoError(t, err)
+
+	// (unsigned range: [0, 2N − 1])
+	err = state1.Set("unsigned", 10.24)
+	require.NoError(t, err)
+	// If we try to get the value back, no error is expected since it has not been encoded yet
 
 	// If we get the value back, no error is expected since it has not been encoded yet
 	v, err = state1.Get("negative")
@@ -323,6 +375,10 @@ func Test_FixedPoint(t *testing.T) {
 	v, err = state1.Get("positive")
 	require.NoError(t, err)
 	require.Equal(t, 5.12, v)
+
+	v, err = state1.Get("unsigned")
+	require.NoError(t, err)
+	require.Equal(t, 10.24, v)
 
 	// Now let's encode it. No error is expected, but wrong values will be retrived when decoding
 	state1Raw, err := state1.Encode()
@@ -340,4 +396,8 @@ func Test_FixedPoint(t *testing.T) {
 	v, err = state2.Get("positive")
 	require.NoError(t, err)
 	require.NotEqual(t, 5.12, v) // The value could not be encoded, so it should not be equal to 5.12
+
+	v, err = state2.Get("unsigned")
+	require.NoError(t, err)
+	require.NotEqual(t, 10.24, v) // The value could not be encoded, so it should not be equal to 10.24
 }

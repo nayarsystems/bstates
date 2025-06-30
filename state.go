@@ -19,8 +19,11 @@ func CreateState(schema *StateSchema) (*State, error) {
 	f := frame.CreateFrame()
 	fields := []*frame.FieldDesc{}
 	for _, f := range schema.GetFields() {
-		if f.Type == T_FIXED {
-			f.DefaultValue = toFixedPoint(f.DefaultValue, f.fixedPointCachedFactor)
+		switch f.Type {
+		case T_FIXED:
+			f.DefaultValue = toSignedFixedPoint(f.DefaultValue, f.fixedPointCachedFactor)
+		case T_UFIXED:
+			f.DefaultValue = toUnsignedFixedPoint(f.DefaultValue, f.fixedPointCachedFactor)
 		}
 		fd := &frame.FieldDesc{
 			Name:         f.Name,
@@ -67,7 +70,7 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 		if !exists {
 			return nil, fmt.Errorf("field \"%s\" not found in schema", fieldName)
 		}
-		if field.Type == T_FIXED {
+		if field.Type == T_FIXED || field.Type == T_UFIXED {
 			v = fromFixedPoint(v, field.fixedPointCachedFactor)
 		}
 		return v, nil
@@ -91,15 +94,22 @@ func (f *State) Set(fieldName string, newValue interface{}) error {
 	if !ok {
 		return fmt.Errorf("field \"%s\" not found in schema", fieldName)
 	}
-	if field.Type == T_FIXED {
-		newValue = toFixedPoint(newValue, field.fixedPointCachedFactor)
+	switch field.Type {
+	case T_FIXED:
+		newValue = toSignedFixedPoint(newValue, field.fixedPointCachedFactor)
+	case T_UFIXED:
+		newValue = toUnsignedFixedPoint(newValue, field.fixedPointCachedFactor)
 	}
 
 	return f.Frame.Set(fieldName, newValue)
 }
 
-func toFixedPoint(v any, factor float64) int64 {
+func toSignedFixedPoint(v any, factor float64) int64 {
 	return int64(math.Round(ei.N(v).Float64Z() * factor))
+}
+
+func toUnsignedFixedPoint(v any, factor float64) uint64 {
+	return uint64(math.Round(ei.N(v).Float64Z() * factor))
 }
 
 func fromFixedPoint(v any, factor float64) float64 {
