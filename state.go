@@ -2,9 +2,11 @@ package bstates
 
 import (
 	"fmt"
+	"math"
+	"reflect"
+
 	"github.com/jaracil/ei"
 	"github.com/nayarsystems/buffer/frame"
-	"math"
 )
 
 // State represents a system state in a point of time.
@@ -80,6 +82,30 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 		return v, nil
 	}
 	return nil, err
+}
+
+func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
+	field, ok := f.schema.fieldsMap[fieldName]
+	if !ok {
+		return false, fmt.Errorf("field \"%s\" not found in schema", fieldName)
+	}
+	switch field.Type {
+	case T_FIXED:
+		oldValue, err := f.Get(fieldName)
+		if err != nil {
+			return false, err
+		}
+		newValue := fromFixedPoint(toSignedFixedPoint(newValue, field.fixedPointCachedFactor), field.fixedPointCachedFactor)
+		return reflect.DeepEqual(oldValue, newValue), nil
+	case T_UFIXED:
+		oldValue, err := f.Get(fieldName)
+		if err != nil {
+			return false, err
+		}
+		newValue := fromFixedPoint(toUnsignedFixedPoint(newValue, field.fixedPointCachedFactor), field.fixedPointCachedFactor)
+		return reflect.DeepEqual(oldValue, newValue), nil
+	}
+	return f.Frame.Same(fieldName, newValue)
 }
 
 // Set updates the value of the specified field in the [State].

@@ -401,3 +401,50 @@ func Test_FixedPoint(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, 10.24, v) // The value could not be encoded, so it should not be equal to 10.24
 }
+
+func Test_SameValue(t *testing.T) {
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name:         "f_ufixed",
+				DefaultValue: 0.020281571796474065,
+				Type:         T_UFIXED,
+				Size:         16,
+				Decimals:     2,
+			},
+			{
+				Name:         "f_fixed",
+				DefaultValue: -0.020281571796474065,
+				Type:         T_FIXED,
+				Size:         16,
+				Decimals:     2,
+			},
+		},
+	})
+	require.Nil(t, err)
+	state0, _ := CreateState(schema)
+
+	same, err := state0.Same("f_ufixed", 0.017905443709534466)
+	require.NoError(t, err)
+	require.True(t, same) // 0.02 == 0.02
+
+	same, err = state0.Same("f_ufixed", 0.020281571796474065)
+	require.NoError(t, err)
+	require.True(t, same) // 0.02 == 0.02
+
+	same, err = state0.Same("f_ufixed", 0.030281571796474065)
+	require.NoError(t, err)
+	require.False(t, same) // 0.02 != 0.03
+
+	same, err = state0.Same("f_fixed", -0.017905443709534466)
+	require.NoError(t, err)
+	require.True(t, same) // -0.02 == -0.02
+
+	same, err = state0.Same("f_fixed", -0.020281571796474065)
+	require.NoError(t, err)
+	require.True(t, same) // -0.02 == -0.02
+
+	same, err = state0.Same("f_fixed", -0.030281571796474065)
+	require.NoError(t, err)
+	require.False(t, same) // -0.02 != -0.03
+}
