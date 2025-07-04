@@ -12,7 +12,7 @@ func TestFieldValidateRange_INT(t *testing.T) {
 	tests := []struct {
 		name        string
 		size        int
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -63,7 +63,7 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 	tests := []struct {
 		name        string
 		size        int
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -112,7 +112,7 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 		name        string
 		size        int
 		decimals    uint
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -164,7 +164,7 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 		name        string
 		size        int
 		decimals    uint
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -213,7 +213,7 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 func TestFieldValidateRange_BOOL(t *testing.T) {
 	tests := []struct {
 		name        string
-		value       interface{}
+		value       any
 		shouldError bool
 	}{
 		{"bool true", true, false},
@@ -247,7 +247,7 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 func TestFieldValidateRange_FLOAT32(t *testing.T) {
 	tests := []struct {
 		name        string
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -284,7 +284,7 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 func TestFieldValidateRange_FLOAT64(t *testing.T) {
 	tests := []struct {
 		name        string
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -322,7 +322,7 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 	tests := []struct {
 		name        string
 		size        int
-		value       interface{}
+		value       any
 		shouldError bool
 		errorMsg    string
 	}{
@@ -363,8 +363,8 @@ func TestFieldGetRange(t *testing.T) {
 		fieldType StateFieldType
 		size     int
 		decimals uint
-		wantMin  interface{}
-		wantMax  interface{}
+		wantMin  any
+		wantMax  any
 		wantErr  bool
 	}{
 		{"INT 8-bit", T_INT, 8, 0, int64(-128), int64(127), false},
@@ -426,7 +426,7 @@ func TestStateSetWithValidation(t *testing.T) {
 	// Test valid values
 	validTests := []struct {
 		field string
-		value interface{}
+		value any
 	}{
 		{"INT_FIELD", 100},
 		{"UINT_FIELD", 200},
@@ -829,7 +829,7 @@ func TestErrorReturnedForOutOfRangeValues(t *testing.T) {
 	// Test cases that MUST return errors
 	testCases := []struct {
 		field string
-		value interface{}
+		value any
 		desc  string
 	}{
 		{"SMALL_INT", 8, "signed integer overflow"},
@@ -856,7 +856,7 @@ func TestErrorReturnedForOutOfRangeValues(t *testing.T) {
 	// Test cases that must NOT return errors (valid values)
 	validCases := []struct {
 		field string
-		value interface{}
+		value any
 		desc  string
 	}{
 		{"SMALL_INT", 7, "signed integer max valid"},

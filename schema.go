@@ -556,7 +556,7 @@ func (e *StateField) normalize() error {
 }
 
 // ValidateRange validates that a value is within the valid range for this field type and size.
-func (e *StateField) ValidateRange(value interface{}) error {
+func (e *StateField) ValidateRange(value any) error {
 	switch e.Type {
 	case T_INT:
 		v, err := ei.N(value).Int64()
@@ -681,7 +681,7 @@ func (e *StateField) ValidateRange(value interface{}) error {
 }
 
 // GetRange returns the valid range for this field type and size.
-func (e *StateField) GetRange() (min, max interface{}, err error) {
+func (e *StateField) GetRange() (min, max any, err error) {
 	switch e.Type {
 	case T_INT:
 		if e.Size == 64 {

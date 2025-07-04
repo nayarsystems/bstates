@@ -112,7 +112,7 @@ func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
 //
 // It first checks if the field is a decoded field and, if so, uses the schema's encoding logic.
 // Otherwise, it validates the value range and updates the field using default encoding logic for the type of the field.
-func (f *State) Set(fieldName string, newValue interface{}) error {
+func (f *State) Set(fieldName string, newValue any) error {
 	if df, ok := f.schema.decodedFields[fieldName]; ok {
 		return df.Decoder.Encode(f, newValue)
 	}
