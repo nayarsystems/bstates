@@ -16,6 +16,12 @@ func TestFieldValidateRange_INT(t *testing.T) {
 		shouldError bool
 		errorMsg    string
 	}{
+		// 1-bit signed integer: range [-1, 0]
+		{"1-bit valid min", 1, -1, false, ""},
+		{"1-bit valid max", 1, 0, false, ""},
+		{"1-bit overflow", 1, 1, true, "value 1 out of range [-1, 0] for 1-bit signed integer"},
+		{"1-bit underflow", 1, -2, true, "value -2 out of range [-1, 0] for 1-bit signed integer"},
+		
 		// 3-bit signed integer: range [-4, 3]
 		{"3-bit valid min", 3, -4, false, ""},
 		{"3-bit valid max", 3, 3, false, ""},
@@ -67,6 +73,12 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 		shouldError bool
 		errorMsg    string
 	}{
+		// 1-bit unsigned integer: range [0, 1]
+		{"1-bit valid min", 1, 0, false, ""},
+		{"1-bit valid max", 1, 1, false, ""},
+		{"1-bit overflow", 1, 2, true, "value 2 out of range [0, 1] for 1-bit unsigned integer"},
+		{"1-bit negative", 1, -1, true, "out of range"},
+		
 		// 3-bit unsigned integer: range [0, 7]
 		{"3-bit valid min", 3, 0, false, ""},
 		{"3-bit valid max", 3, 7, false, ""},
@@ -220,10 +232,14 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 		{"bool false", false, false},
 		{"int 1", 1, false},
 		{"int 0", 0, false},
+		{"int 2", 2, false}, // ei.N should convert non-zero to true
+		{"int -1", -1, false}, // ei.N should convert non-zero to true
 		{"string true", "true", true},
 		{"string false", "false", true},
 		{"string invalid", "maybe", true},
 		{"float", 3.14, false},
+		{"float zero", 0.0, false},
+		{"nil value", nil, true},
 	}
 
 	for _, tt := range tests {
@@ -254,10 +270,15 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 		{"valid float", 3.14, false, ""},
 		{"max float32", math.MaxFloat32, false, ""},
 		{"min float32", -math.MaxFloat32, false, ""},
+		{"float64 too large", math.MaxFloat64, true, "is not a finite number"}, // Converts to +Inf, should be rejected
+		{"very small positive", math.SmallestNonzeroFloat32, false, ""},
+		{"very small negative", -math.SmallestNonzeroFloat32, false, ""},
 		{"infinity", math.Inf(1), true, "is not a finite number"},
 		{"negative infinity", math.Inf(-1), true, "is not a finite number"},
 		{"NaN", math.NaN(), true, "is not a finite number"},
 		{"string value", "not a number", true, "value is not a valid float32"},
+		{"integer value", 42, false, ""},
+		{"zero", 0.0, false, ""},
 	}
 
 	for _, tt := range tests {
@@ -291,10 +312,14 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 		{"valid float", 3.14159265359, false, ""},
 		{"max float64", math.MaxFloat64, false, ""},
 		{"min float64", -math.MaxFloat64, false, ""},
+		{"very small positive", math.SmallestNonzeroFloat64, false, ""},
+		{"very small negative", -math.SmallestNonzeroFloat64, false, ""},
 		{"infinity", math.Inf(1), true, "is not a finite number"},
 		{"negative infinity", math.Inf(-1), true, "is not a finite number"},
 		{"NaN", math.NaN(), true, "is not a finite number"},
 		{"string value", "not a number", true, "value is not a valid float64"},
+		{"integer value", 42, false, ""},
+		{"zero", 0.0, false, ""},
 	}
 
 	for _, tt := range tests {
@@ -330,10 +355,14 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 		{"valid base64 string", 64, "SGVsbG8=", false, ""}, // "Hello" in base64 (40 bits)
 		{"empty byte slice", 64, []byte{}, false, ""},
 		{"empty base64 string", 64, "", false, ""},
+		{"single byte", 8, []byte{255}, false, ""},
+		{"exactly max size", 8, []byte{1}, false, ""},
 		{"oversized byte slice", 16, []byte{1, 2, 3}, true, "buffer size 24 bits exceeds field size 16 bits"},
 		{"oversized base64", 16, "SGVsbG8gV29ybGQ=", true, "buffer size 88 bits exceeds field size 16 bits"},
 		{"invalid base64", 64, "not base64!", true, "buffer value is not valid base64"},
+		{"invalid base64 padding", 64, "SGVsbG8", true, "buffer value is not valid base64"},
 		{"invalid type", 64, 123, true, "buffer value must be string (base64) or []byte"},
+		{"nil value", 64, nil, true, "buffer value must be string (base64) or []byte"},
 	}
 
 	for _, tt := range tests {
@@ -379,6 +408,12 @@ func TestFieldGetRange(t *testing.T) {
 		{"FLOAT32", T_FLOAT32, 32, 0, float32(-math.MaxFloat32), float32(math.MaxFloat32), false},
 		{"FLOAT64", T_FLOAT64, 64, 0, -math.MaxFloat64, math.MaxFloat64, false},
 		{"BUFFER", T_BUFFER, 64, 0, 0, 64, false},
+		
+		// Edge cases
+		{"INT 1-bit", T_INT, 1, 0, int64(-1), int64(0), false},
+		{"UINT 1-bit", T_UINT, 1, 0, uint64(0), uint64(1), false},
+		{"FIXED 1-bit 0 decimals", T_FIXED, 1, 0, float64(-1), float64(0), false},
+		{"UFIXED 1-bit 0 decimals", T_UFIXED, 1, 0, float64(0), float64(1), false},
 	}
 
 	for _, tt := range tests {
@@ -777,6 +812,7 @@ func TestStateSetOutOfRangeValues_BOOL(t *testing.T) {
 		{"invalid string", "maybe", true, "value is not a valid boolean"},
 		{"invalid object", map[string]int{"key": 1}, true, "value is not a valid boolean"},
 		{"invalid array", []int{1, 2, 3}, true, "value is not a valid boolean"},
+		{"complex number", complex(1, 2), true, "value is not a valid boolean"},
 		
 		// Valid values should not error
 		{"bool true", true, false, ""},
@@ -873,5 +909,161 @@ func TestErrorReturnedForOutOfRangeValues(t *testing.T) {
 			err := state.Set(tc.field, tc.value)
 			assert.NoError(t, err, "Expected no error for %s with value %v, but got: %v", tc.field, tc.value, err)
 		})
+	}
+}
+
+// TestValidateRange_InvalidFieldConfigurations tests edge cases and invalid configurations
+// that should return errors, including unknown field types and improperly initialized fields.
+func TestValidateRange_InvalidFieldConfigurations(t *testing.T) {
+	// Test unknown field type
+	t.Run("unknown field type", func(t *testing.T) {
+		field := &StateField{
+			Type: StateFieldType(99), // Invalid type
+			Size: 8,
+		}
+		err := field.ValidateRange(42)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unknown field type")
+	})
+
+	// Test fixed-point without cached factor
+	t.Run("fixed-point without cached factor", func(t *testing.T) {
+		field := &StateField{
+			Type: T_FIXED,
+			Size: 10,
+			Decimals: 2,
+			// fixedPointCachedFactor not set - should be 100
+		}
+		// This should still work because division by 0 is handled
+		err := field.ValidateRange(1.5)
+		// The implementation might panic or return incorrect results without cached factor
+		// This test verifies the current behavior
+		if err != nil {
+			t.Logf("Error without cached factor: %v", err)
+		}
+	})
+
+	// Test with properly initialized cached factor
+	t.Run("fixed-point with cached factor", func(t *testing.T) {
+		field := &StateField{
+			Type: T_FIXED,
+			Size: 10,
+			Decimals: 2,
+			fixedPointCachedFactor: 100.0,
+		}
+		err := field.ValidateRange(1.5)
+		assert.NoError(t, err)
+	})
+}
+
+// TestGetRange_EdgeCases tests edge cases for GetRange function
+// including unknown field types, uninitialized cached factors, and extreme field sizes.
+func TestGetRange_EdgeCases(t *testing.T) {
+	// Test unknown field type
+	t.Run("unknown field type", func(t *testing.T) {
+		field := &StateField{
+			Type: StateFieldType(99), // Invalid type
+			Size: 8,
+		}
+		min, max, err := field.GetRange()
+		assert.Error(t, err)
+		assert.Nil(t, min)
+		assert.Nil(t, max)
+		assert.Contains(t, err.Error(), "unknown field type")
+	})
+
+	// Test fixed-point without cached factor
+	t.Run("fixed-point without cached factor", func(t *testing.T) {
+		field := &StateField{
+			Type: T_FIXED,
+			Size: 10,
+			Decimals: 2,
+			// fixedPointCachedFactor not set - should be 100
+		}
+		min, max, err := field.GetRange()
+		// This might result in division by zero or incorrect results
+		if err != nil {
+			t.Logf("Error without cached factor: %v", err)
+			assert.Error(t, err)
+		} else {
+			t.Logf("Range without cached factor: [%v, %v]", min, max)
+		}
+	})
+
+	// Test extreme field sizes
+	t.Run("extreme field sizes", func(t *testing.T) {
+		tests := []struct {
+			name      string
+			fieldType StateFieldType
+			size      int
+			decimals  uint
+			expectErr bool
+		}{
+			{"INT 65-bit", T_INT, 65, 0, false}, // Should be treated as 64-bit
+			{"UINT 65-bit", T_UINT, 65, 0, false}, // Should be treated as 64-bit
+			{"FIXED 65-bit", T_FIXED, 65, 2, false}, // Should be treated as 64-bit
+			{"UFIXED 65-bit", T_UFIXED, 65, 2, false}, // Should be treated as 64-bit
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				field := &StateField{
+					Type:                   tt.fieldType,
+					Size:                   tt.size,
+					Decimals:               tt.decimals,
+					fixedPointCachedFactor: math.Pow(10, float64(tt.decimals)),
+				}
+				min, max, err := field.GetRange()
+				if tt.expectErr {
+					assert.Error(t, err)
+				} else {
+					assert.NoError(t, err)
+					assert.NotNil(t, min)
+					assert.NotNil(t, max)
+				}
+			})
+		}
+	})
+}
+
+// TestFieldValidation_ConcurrentAccess tests validation under concurrent access
+// to ensure thread safety and prevent race conditions or panics.
+func TestFieldValidation_ConcurrentAccess(t *testing.T) {
+	field := &StateField{
+		Type:                   T_FIXED,
+		Size:                   10,
+		Decimals:               2,
+		fixedPointCachedFactor: 100.0,
+	}
+
+	// Run multiple goroutines concurrently
+	const numGoroutines = 10
+	const numIterations = 100
+	done := make(chan bool, numGoroutines)
+
+	for i := 0; i < numGoroutines; i++ {
+		go func(id int) {
+			for j := 0; j < numIterations; j++ {
+				// Test both valid and invalid values
+				values := []any{1.5, -2.3, 10.0, -10.0} // Mix of valid and invalid
+				for _, value := range values {
+					err := field.ValidateRange(value)
+					// Just ensure no panics occur
+					_ = err
+				}
+				
+				// Test GetRange as well
+				min, max, err := field.GetRange()
+				_ = min
+				_ = max
+				_ = err
+			}
+			done <- true
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	for i := 0; i < numGoroutines; i++ {
+		<-done
 	}
 }
