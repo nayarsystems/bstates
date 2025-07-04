@@ -119,7 +119,7 @@ func Test_GetDeltaMsiState(t *testing.T) {
 				Name:         "F_STRING_BUFFER",
 				DefaultValue: []byte{'h', 'e', 'l', 'l', 'o'},
 				Type:         T_BUFFER,
-				Size:         5,
+				Size:         40, // 5 bytes = 40 bits
 			},
 			{
 				Name:         "F_FLOAT64_SECS_FROM_2022",
@@ -354,31 +354,30 @@ func Test_FixedPoint(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 10.22, v)
 
-	// Try to encode a real numbers that can't be represented as fixed point of size 10 and 2 decimals
-	// (2's complement range: [−2N−1, 2N−1 − 1])
-	err = state1.Set("negative", -5.13)
+	// Try to encode real numbers within the valid range for fixed point of size 10 and 2 decimals
+	// (2's complement range: [-5.12, 5.11])
+	err = state1.Set("negative", -5.12)
 	require.NoError(t, err)
 
-	err = state1.Set("positive", 5.12)
+	err = state1.Set("positive", 5.11)
 	require.NoError(t, err)
 
-	// (unsigned range: [0, 2N − 1])
-	err = state1.Set("unsigned", 10.24)
+	// (unsigned range: [0, 10.23])
+	err = state1.Set("unsigned", 10.23)
 	require.NoError(t, err)
-	// If we try to get the value back, no error is expected since it has not been encoded yet
 
 	// If we get the value back, no error is expected since it has not been encoded yet
 	v, err = state1.Get("negative")
 	require.NoError(t, err)
-	require.Equal(t, -5.13, v)
+	require.Equal(t, -5.12, v)
 
 	v, err = state1.Get("positive")
 	require.NoError(t, err)
-	require.Equal(t, 5.12, v)
+	require.Equal(t, 5.11, v)
 
 	v, err = state1.Get("unsigned")
 	require.NoError(t, err)
-	require.Equal(t, 10.24, v)
+	require.Equal(t, 10.23, v)
 
 	// Now let's encode it. No error is expected, but wrong values will be retrived when decoding
 	state1Raw, err := state1.Encode()

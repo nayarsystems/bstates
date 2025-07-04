@@ -555,6 +555,176 @@ func (e *StateField) normalize() error {
 	return nil
 }
 
+// ValidateRange validates that a value is within the valid range for this field type and size.
+func (e *StateField) ValidateRange(value interface{}) error {
+	switch e.Type {
+	case T_INT:
+		v, err := ei.N(value).Int64()
+		if err != nil {
+			return fmt.Errorf("value is not a valid integer: %v", err)
+		}
+		// Calculate valid range for signed integers
+		if e.Size == 64 {
+			// Full int64 range
+			return nil
+		}
+		maxValue := int64(1<<(e.Size-1)) - 1
+		minValue := -int64(1 << (e.Size - 1))
+		if v < minValue || v > maxValue {
+			return fmt.Errorf("value %d out of range [%d, %d] for %d-bit signed integer", v, minValue, maxValue, e.Size)
+		}
+	case T_UINT:
+		v, err := ei.N(value).Uint64()
+		if err != nil {
+			return fmt.Errorf("value is not a valid unsigned integer: %v", err)
+		}
+		// Calculate valid range for unsigned integers
+		if e.Size == 64 {
+			// Full uint64 range
+			return nil
+		}
+		maxValue := uint64(1<<e.Size) - 1
+		if v > maxValue {
+			return fmt.Errorf("value %d out of range [0, %d] for %d-bit unsigned integer", v, maxValue, e.Size)
+		}
+	case T_FIXED:
+		v, err := ei.N(value).Float64()
+		if err != nil {
+			return fmt.Errorf("value is not a valid number: %v", err)
+		}
+		// Calculate valid range for signed fixed-point
+		if e.Size == 64 {
+			// Full int64 range when scaled
+			maxScaled := float64(math.MaxInt64) / e.fixedPointCachedFactor
+			minScaled := float64(math.MinInt64) / e.fixedPointCachedFactor
+			if v < minScaled || v > maxScaled {
+				return fmt.Errorf("value %f out of range [%f, %f] for %d-bit signed fixed-point with %d decimals", v, minScaled, maxScaled, e.Size, e.Decimals)
+			}
+		} else {
+			maxValue := float64(int64(1<<(e.Size-1))-1) / e.fixedPointCachedFactor
+			minValue := float64(-int64(1<<(e.Size-1))) / e.fixedPointCachedFactor
+			if v < minValue || v > maxValue {
+				return fmt.Errorf("value %f out of range [%f, %f] for %d-bit signed fixed-point with %d decimals", v, minValue, maxValue, e.Size, e.Decimals)
+			}
+		}
+	case T_UFIXED:
+		v, err := ei.N(value).Float64()
+		if err != nil {
+			return fmt.Errorf("value is not a valid number: %v", err)
+		}
+		if v < 0 {
+			return fmt.Errorf("value %f cannot be negative for unsigned fixed-point", v)
+		}
+		// Calculate valid range for unsigned fixed-point
+		if e.Size == 64 {
+			// Full uint64 range when scaled
+			maxScaled := float64(math.MaxUint64) / e.fixedPointCachedFactor
+			if v > maxScaled {
+				return fmt.Errorf("value %f out of range [0, %f] for %d-bit unsigned fixed-point with %d decimals", v, maxScaled, e.Size, e.Decimals)
+			}
+		} else {
+			maxValue := float64(uint64(1<<e.Size)-1) / e.fixedPointCachedFactor
+			if v > maxValue {
+				return fmt.Errorf("value %f out of range [0, %f] for %d-bit unsigned fixed-point with %d decimals", v, maxValue, e.Size, e.Decimals)
+			}
+		}
+	case T_BOOL:
+		// Bool validation - accept various boolean representations
+		_, err := ei.N(value).Bool()
+		if err != nil {
+			return fmt.Errorf("value is not a valid boolean: %v", err)
+		}
+	case T_FLOAT32:
+		v, err := ei.N(value).Float32()
+		if err != nil {
+			return fmt.Errorf("value is not a valid float32: %v", err)
+		}
+		// Check for infinity and NaN
+		if math.IsInf(float64(v), 0) || math.IsNaN(float64(v)) {
+			return fmt.Errorf("value %f is not a finite number", v)
+		}
+	case T_FLOAT64:
+		v, err := ei.N(value).Float64()
+		if err != nil {
+			return fmt.Errorf("value is not a valid float64: %v", err)
+		}
+		// Check for infinity and NaN
+		if math.IsInf(v, 0) || math.IsNaN(v) {
+			return fmt.Errorf("value %f is not a finite number", v)
+		}
+	case T_BUFFER:
+		switch v := value.(type) {
+		case string:
+			// Try to decode as base64
+			decoded, err := base64.StdEncoding.DecodeString(v)
+			if err != nil {
+				return fmt.Errorf("buffer value is not valid base64: %v", err)
+			}
+			// Check size constraints
+			bitSize := len(decoded) * 8
+			if bitSize > e.Size {
+				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
+			}
+		case []byte:
+			// Check size constraints
+			bitSize := len(v) * 8
+			if bitSize > e.Size {
+				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
+			}
+		default:
+			return fmt.Errorf("buffer value must be string (base64) or []byte")
+		}
+	default:
+		return fmt.Errorf("unknown field type %d", e.Type)
+	}
+	return nil
+}
+
+// GetRange returns the valid range for this field type and size.
+func (e *StateField) GetRange() (min, max interface{}, err error) {
+	switch e.Type {
+	case T_INT:
+		if e.Size == 64 {
+			return int64(math.MinInt64), int64(math.MaxInt64), nil
+		}
+		maxValue := int64(1<<(e.Size-1)) - 1
+		minValue := -int64(1 << (e.Size - 1))
+		return minValue, maxValue, nil
+	case T_UINT:
+		if e.Size == 64 {
+			return uint64(0), uint64(math.MaxUint64), nil
+		}
+		maxValue := uint64(1<<e.Size) - 1
+		return uint64(0), maxValue, nil
+	case T_FIXED:
+		if e.Size == 64 {
+			maxScaled := float64(math.MaxInt64) / e.fixedPointCachedFactor
+			minScaled := float64(math.MinInt64) / e.fixedPointCachedFactor
+			return minScaled, maxScaled, nil
+		}
+		maxValue := float64(int64(1<<(e.Size-1))-1) / e.fixedPointCachedFactor
+		minValue := float64(-int64(1<<(e.Size-1))) / e.fixedPointCachedFactor
+		return minValue, maxValue, nil
+	case T_UFIXED:
+		if e.Size == 64 {
+			maxScaled := float64(math.MaxUint64) / e.fixedPointCachedFactor
+			return float64(0), maxScaled, nil
+		}
+		maxValue := float64(uint64(1<<e.Size)-1) / e.fixedPointCachedFactor
+		return float64(0), maxValue, nil
+	case T_BOOL:
+		return false, true, nil
+	case T_FLOAT32:
+		return float32(-math.MaxFloat32), float32(math.MaxFloat32), nil
+	case T_FLOAT64:
+		return -math.MaxFloat64, math.MaxFloat64, nil
+	case T_BUFFER:
+		return 0, e.Size, nil // Return bit size limits
+	default:
+		return nil, nil, fmt.Errorf("unknown field type %d", e.Type)
+	}
+}
+
 // DecodedStateField represents a view of a [StateField] decoded by a [Decoder].
 //
 // The Name is used to access the decoded view. The raw encoded [StateField] is provided on the parameter "from" to the [Decoder].

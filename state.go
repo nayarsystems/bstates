@@ -111,7 +111,7 @@ func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
 // Set updates the value of the specified field in the [State].
 //
 // It first checks if the field is a decoded field and, if so, uses the schema's encoding logic.
-// Otherwise, it updates the field using default encoding logic for the type of the field.
+// Otherwise, it validates the value range and updates the field using default encoding logic for the type of the field.
 func (f *State) Set(fieldName string, newValue interface{}) error {
 	if df, ok := f.schema.decodedFields[fieldName]; ok {
 		return df.Decoder.Encode(f, newValue)
@@ -120,6 +120,12 @@ func (f *State) Set(fieldName string, newValue interface{}) error {
 	if !ok {
 		return fmt.Errorf("field \"%s\" not found in schema", fieldName)
 	}
+	
+	// Validate the value range before setting
+	if err := field.ValidateRange(newValue); err != nil {
+		return fmt.Errorf("field \"%s\": %v", fieldName, err)
+	}
+	
 	switch field.Type {
 	case T_FIXED:
 		newValue = toSignedFixedPoint(newValue, field.fixedPointCachedFactor)
