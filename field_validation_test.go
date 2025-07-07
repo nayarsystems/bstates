@@ -13,35 +13,34 @@ func TestFieldValidateRange_INT(t *testing.T) {
 		name        string
 		size        int
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
 		// 1-bit signed integer: range [-1, 0]
-		{"1-bit valid min", 1, -1, false, ""},
-		{"1-bit valid max", 1, 0, false, ""},
-		{"1-bit overflow", 1, 1, true, "value 1 out of range [-1, 0] for 1-bit signed integer"},
-		{"1-bit underflow", 1, -2, true, "value -2 out of range [-1, 0] for 1-bit signed integer"},
+		{"1-bit valid min", 1, -1, ""},
+		{"1-bit valid max", 1, 0, ""},
+		{"1-bit overflow", 1, 1, "value 1 out of range [-1, 0] for 1-bit signed integer"},
+		{"1-bit underflow", 1, -2, "value -2 out of range [-1, 0] for 1-bit signed integer"},
 		
 		// 3-bit signed integer: range [-4, 3]
-		{"3-bit valid min", 3, -4, false, ""},
-		{"3-bit valid max", 3, 3, false, ""},
-		{"3-bit valid zero", 3, 0, false, ""},
-		{"3-bit overflow", 3, 4, true, "value 4 out of range [-4, 3] for 3-bit signed integer"},
-		{"3-bit underflow", 3, -5, true, "value -5 out of range [-4, 3] for 3-bit signed integer"},
+		{"3-bit valid min", 3, -4, ""},
+		{"3-bit valid max", 3, 3, ""},
+		{"3-bit valid zero", 3, 0, ""},
+		{"3-bit overflow", 3, 4, "value 4 out of range [-4, 3] for 3-bit signed integer"},
+		{"3-bit underflow", 3, -5, "value -5 out of range [-4, 3] for 3-bit signed integer"},
 		
 		// 8-bit signed integer: range [-128, 127]
-		{"8-bit valid min", 8, -128, false, ""},
-		{"8-bit valid max", 8, 127, false, ""},
-		{"8-bit overflow", 8, 128, true, "value 128 out of range [-128, 127] for 8-bit signed integer"},
-		{"8-bit underflow", 8, -129, true, "value -129 out of range [-128, 127] for 8-bit signed integer"},
+		{"8-bit valid min", 8, -128, ""},
+		{"8-bit valid max", 8, 127, ""},
+		{"8-bit overflow", 8, 128, "value 128 out of range [-128, 127] for 8-bit signed integer"},
+		{"8-bit underflow", 8, -129, "value -129 out of range [-128, 127] for 8-bit signed integer"},
 		
 		// 64-bit signed integer: full range
-		{"64-bit max", 64, math.MaxInt64, false, ""},
-		{"64-bit min", 64, math.MinInt64, false, ""},
+		{"64-bit max", 64, math.MaxInt64, ""},
+		{"64-bit min", 64, math.MinInt64, ""},
 		
 		// Invalid types
-		{"string value", 8, "not a number", true, "value is not a valid integer"},
-		{"float value", 8, 3.14, false, ""}, // ei.N should handle this
+		{"string value", 8, "not a number", "value is not a valid integer"},
+		{"float value", 8, 3.14, ""}, // ei.N should handle this
 	}
 
 	for _, tt := range tests {
@@ -53,11 +52,9 @@ func TestFieldValidateRange_INT(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -70,32 +67,31 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 		name        string
 		size        int
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
 		// 1-bit unsigned integer: range [0, 1]
-		{"1-bit valid min", 1, 0, false, ""},
-		{"1-bit valid max", 1, 1, false, ""},
-		{"1-bit overflow", 1, 2, true, "value 2 out of range [0, 1] for 1-bit unsigned integer"},
-		{"1-bit negative", 1, -1, true, "out of range"},
+		{"1-bit valid min", 1, 0, ""},
+		{"1-bit valid max", 1, 1, ""},
+		{"1-bit overflow", 1, 2, "value 2 out of range [0, 1] for 1-bit unsigned integer"},
+		{"1-bit negative", 1, -1, "out of range"},
 		
 		// 3-bit unsigned integer: range [0, 7]
-		{"3-bit valid min", 3, 0, false, ""},
-		{"3-bit valid max", 3, 7, false, ""},
-		{"3-bit overflow", 3, 8, true, "value 8 out of range [0, 7] for 3-bit unsigned integer"},
-		{"3-bit negative", 3, -1, true, "out of range"},
+		{"3-bit valid min", 3, 0, ""},
+		{"3-bit valid max", 3, 7, ""},
+		{"3-bit overflow", 3, 8, "value 8 out of range [0, 7] for 3-bit unsigned integer"},
+		{"3-bit negative", 3, -1, "out of range"},
 		
 		// 8-bit unsigned integer: range [0, 255]
-		{"8-bit valid min", 8, 0, false, ""},
-		{"8-bit valid max", 8, 255, false, ""},
-		{"8-bit overflow", 8, 256, true, "value 256 out of range [0, 255] for 8-bit unsigned integer"},
+		{"8-bit valid min", 8, 0, ""},
+		{"8-bit valid max", 8, 255, ""},
+		{"8-bit overflow", 8, 256, "value 256 out of range [0, 255] for 8-bit unsigned integer"},
 		
 		// 64-bit unsigned integer: full range
-		{"64-bit max", 64, uint64(math.MaxUint64), false, ""},
-		{"64-bit min", 64, uint64(0), false, ""},
+		{"64-bit max", 64, uint64(math.MaxUint64), ""},
+		{"64-bit min", 64, uint64(0), ""},
 		
 		// Invalid types
-		{"string value", 8, "not a number", true, "value is not a valid unsigned integer"},
+		{"string value", 8, "not a number", "value is not a valid unsigned integer"},
 	}
 
 	for _, tt := range tests {
@@ -107,11 +103,9 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -125,27 +119,26 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 		size        int
 		decimals    uint
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
 		// 10-bit signed fixed-point with 2 decimals: range [-5.12, 5.11]
-		{"10-bit valid min", 10, 2, -5.12, false, ""},
-		{"10-bit valid max", 10, 2, 5.11, false, ""},
-		{"10-bit valid zero", 10, 2, 0.0, false, ""},
-		{"10-bit overflow", 10, 2, 5.13, true, "value 5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point with 2 decimals"},
-		{"10-bit underflow", 10, 2, -5.13, true, "value -5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point with 2 decimals"},
+		{"10-bit valid min", 10, 2, -5.12, ""},
+		{"10-bit valid max", 10, 2, 5.11, ""},
+		{"10-bit valid zero", 10, 2, 0.0, ""},
+		{"10-bit overflow", 10, 2, 5.13, "value 5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point with 2 decimals"},
+		{"10-bit underflow", 10, 2, -5.13, "value -5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point with 2 decimals"},
 		
 		// 8-bit signed fixed-point with 1 decimal: range [-12.8, 12.7]
-		{"8-bit valid min", 8, 1, -12.8, false, ""},
-		{"8-bit valid max", 8, 1, 12.7, false, ""},
-		{"8-bit overflow", 8, 1, 12.8, true, "value 12.800000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point with 1 decimals"},
+		{"8-bit valid min", 8, 1, -12.8, ""},
+		{"8-bit valid max", 8, 1, 12.7, ""},
+		{"8-bit overflow", 8, 1, 12.8, "value 12.800000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point with 1 decimals"},
 		
 		// 64-bit signed fixed-point: full range
-		{"64-bit max", 64, 2, float64(math.MaxInt64)/100, false, ""},
-		{"64-bit min", 64, 2, float64(math.MinInt64)/100, false, ""},
+		{"64-bit max", 64, 2, float64(math.MaxInt64)/100, ""},
+		{"64-bit min", 64, 2, float64(math.MinInt64)/100, ""},
 		
 		// Invalid types
-		{"string value", 10, 2, "not a number", true, "value is not a valid number"},
+		{"string value", 10, 2, "not a number", "value is not a valid number"},
 	}
 
 	for _, tt := range tests {
@@ -159,11 +152,9 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -177,26 +168,25 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 		size        int
 		decimals    uint
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
 		// 10-bit unsigned fixed-point with 2 decimals: range [0, 10.23]
-		{"10-bit valid min", 10, 2, 0.0, false, ""},
-		{"10-bit valid max", 10, 2, 10.23, false, ""},
-		{"10-bit overflow", 10, 2, 10.24, true, "value 10.240000 out of range [0, 10.230000] for 10-bit unsigned fixed-point with 2 decimals"},
-		{"10-bit negative", 10, 2, -0.01, true, "value -0.010000 cannot be negative for unsigned fixed-point"},
+		{"10-bit valid min", 10, 2, 0.0, ""},
+		{"10-bit valid max", 10, 2, 10.23, ""},
+		{"10-bit overflow", 10, 2, 10.24, "value 10.240000 out of range [0, 10.230000] for 10-bit unsigned fixed-point with 2 decimals"},
+		{"10-bit negative", 10, 2, -0.01, "value -0.010000 cannot be negative for unsigned fixed-point"},
 		
 		// 8-bit unsigned fixed-point with 1 decimal: range [0, 25.5]
-		{"8-bit valid min", 8, 1, 0.0, false, ""},
-		{"8-bit valid max", 8, 1, 25.5, false, ""},
-		{"8-bit overflow", 8, 1, 25.6, true, "value 25.600000 out of range [0, 25.500000] for 8-bit unsigned fixed-point with 1 decimals"},
+		{"8-bit valid min", 8, 1, 0.0, ""},
+		{"8-bit valid max", 8, 1, 25.5, ""},
+		{"8-bit overflow", 8, 1, 25.6, "value 25.600000 out of range [0, 25.500000] for 8-bit unsigned fixed-point with 1 decimals"},
 		
 		// 64-bit unsigned fixed-point: full range
-		{"64-bit max", 64, 2, float64(math.MaxUint64)/100, false, ""},
-		{"64-bit min", 64, 2, 0.0, false, ""},
+		{"64-bit max", 64, 2, float64(math.MaxUint64)/100, ""},
+		{"64-bit min", 64, 2, 0.0, ""},
 		
 		// Invalid types
-		{"string value", 10, 2, "not a number", true, "value is not a valid number"},
+		{"string value", 10, 2, "not a number", "value is not a valid number"},
 	}
 
 	for _, tt := range tests {
@@ -210,11 +200,9 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -226,20 +214,20 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 	tests := []struct {
 		name        string
 		value       any
-		shouldError bool
+		errMsg string
 	}{
-		{"bool true", true, false},
-		{"bool false", false, false},
-		{"int 1", 1, false},
-		{"int 0", 0, false},
-		{"int 2", 2, false}, // ei.N should convert non-zero to true
-		{"int -1", -1, false}, // ei.N should convert non-zero to true
-		{"string true", "true", true},
-		{"string false", "false", true},
-		{"string invalid", "maybe", true},
-		{"float", 3.14, false},
-		{"float zero", 0.0, false},
-		{"nil value", nil, true},
+		{"bool true", true, ""},
+		{"bool false", false, ""},
+		{"int 1", 1, ""},
+		{"int 0", 0, ""},
+		{"int 2", 2, ""}, // ei.N should convert non-zero to true
+		{"int -1", -1, ""}, // ei.N should convert non-zero to true
+		{"string true", "true", "value is not a valid boolean"},
+		{"string false", "false", "value is not a valid boolean"},
+		{"string invalid", "maybe", "value is not a valid boolean"},
+		{"float", 3.14, ""},
+		{"float zero", 0.0, ""},
+		{"nil value", nil, "value is not a valid boolean"},
 	}
 
 	for _, tt := range tests {
@@ -251,7 +239,7 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
@@ -264,21 +252,20 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 	tests := []struct {
 		name        string
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
-		{"valid float", 3.14, false, ""},
-		{"max float32", math.MaxFloat32, false, ""},
-		{"min float32", -math.MaxFloat32, false, ""},
-		{"float64 too large", math.MaxFloat64, true, "is not a finite number"}, // Converts to +Inf, should be rejected
-		{"very small positive", math.SmallestNonzeroFloat32, false, ""},
-		{"very small negative", -math.SmallestNonzeroFloat32, false, ""},
-		{"infinity", math.Inf(1), true, "is not a finite number"},
-		{"negative infinity", math.Inf(-1), true, "is not a finite number"},
-		{"NaN", math.NaN(), true, "is not a finite number"},
-		{"string value", "not a number", true, "value is not a valid float32"},
-		{"integer value", 42, false, ""},
-		{"zero", 0.0, false, ""},
+		{"valid float", 3.14, ""},
+		{"max float32", math.MaxFloat32, ""},
+		{"min float32", -math.MaxFloat32, ""},
+		{"float64 too large", math.MaxFloat64, "is not a finite number"}, // Converts to +Inf, should be rejected
+		{"very small positive", math.SmallestNonzeroFloat32, ""},
+		{"very small negative", -math.SmallestNonzeroFloat32, ""},
+		{"infinity", math.Inf(1), "is not a finite number"},
+		{"negative infinity", math.Inf(-1), "is not a finite number"},
+		{"NaN", math.NaN(), "is not a finite number"},
+		{"string value", "not a number", "value is not a valid float32"},
+		{"integer value", 42, ""},
+		{"zero", 0.0, ""},
 	}
 
 	for _, tt := range tests {
@@ -290,11 +277,9 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -306,20 +291,19 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 	tests := []struct {
 		name        string
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
-		{"valid float", 3.14159265359, false, ""},
-		{"max float64", math.MaxFloat64, false, ""},
-		{"min float64", -math.MaxFloat64, false, ""},
-		{"very small positive", math.SmallestNonzeroFloat64, false, ""},
-		{"very small negative", -math.SmallestNonzeroFloat64, false, ""},
-		{"infinity", math.Inf(1), true, "is not a finite number"},
-		{"negative infinity", math.Inf(-1), true, "is not a finite number"},
-		{"NaN", math.NaN(), true, "is not a finite number"},
-		{"string value", "not a number", true, "value is not a valid float64"},
-		{"integer value", 42, false, ""},
-		{"zero", 0.0, false, ""},
+		{"valid float", 3.14159265359, ""},
+		{"max float64", math.MaxFloat64, ""},
+		{"min float64", -math.MaxFloat64, ""},
+		{"very small positive", math.SmallestNonzeroFloat64, ""},
+		{"very small negative", -math.SmallestNonzeroFloat64, ""},
+		{"infinity", math.Inf(1), "is not a finite number"},
+		{"negative infinity", math.Inf(-1), "is not a finite number"},
+		{"NaN", math.NaN(), "is not a finite number"},
+		{"string value", "not a number", "value is not a valid float64"},
+		{"integer value", 42, ""},
+		{"zero", 0.0, ""},
 	}
 
 	for _, tt := range tests {
@@ -331,11 +315,9 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -348,21 +330,19 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 		name        string
 		size        int
 		value       any
-		shouldError bool
-		errorMsg    string
+		errMsg string
 	}{
-		{"valid byte slice", 64, []byte{1, 2, 3, 4}, false, ""},
-		{"valid base64 string", 64, "SGVsbG8=", false, ""}, // "Hello" in base64 (40 bits)
-		{"empty byte slice", 64, []byte{}, false, ""},
-		{"empty base64 string", 64, "", false, ""},
-		{"single byte", 8, []byte{255}, false, ""},
-		{"exactly max size", 8, []byte{1}, false, ""},
-		{"oversized byte slice", 16, []byte{1, 2, 3}, true, "buffer size 24 bits exceeds field size 16 bits"},
-		{"oversized base64", 16, "SGVsbG8gV29ybGQ=", true, "buffer size 88 bits exceeds field size 16 bits"},
-		{"invalid base64", 64, "not base64!", true, "buffer value is not valid base64"},
-		{"invalid base64 padding", 64, "SGVsbG8", true, "buffer value is not valid base64"},
-		{"invalid type", 64, 123, true, "buffer value must be string (base64) or []byte"},
-		{"nil value", 64, nil, true, "buffer value must be string (base64) or []byte"},
+		{"valid byte slice", 64, []byte{1, 2, 3, 4}, ""},
+		{"valid string", 64, "Hello", ""},
+		{"empty byte slice", 64, []byte{}, ""},
+		{"empty string", 64, "", ""},
+		{"single byte", 8, []byte{255}, ""},
+		{"exactly max size", 8, []byte{1}, ""},
+		{"oversized byte slice", 16, []byte{1, 2, 3}, "buffer size 24 bits exceeds field size 16 bits"},
+		{"oversized string", 16, "Hello World", "buffer size 88 bits exceeds field size 16 bits"},
+		{"unicode string", 64, "Héllo", ""},
+		{"invalid type", 64, 123, "buffer value must be string or []byte"},
+		{"nil value", 64, nil, "buffer value must be string or []byte"},
 	}
 
 	for _, tt := range tests {
@@ -374,11 +354,9 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 			
 			err := field.ValidateRange(tt.value)
 			
-			if tt.shouldError {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -483,7 +461,7 @@ func TestStateSetWithValidation(t *testing.T) {
 	// Test invalid values
 	invalidTests := []struct {
 		field     string
-		value     interface{}
+		value     any
 		shouldErr bool
 	}{
 		{"INT_FIELD", 300, true},    // > 127
@@ -530,24 +508,23 @@ func TestStateSetNonexistentField(t *testing.T) {
 
 func TestStateSetOutOfRangeValues_INT(t *testing.T) {
 	tests := []struct {
-		name      string
-		size      int
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		name   string
+		size   int
+		value  any
+		errMsg string
 	}{
-		{"3-bit max overflow", 3, 4, true, "value 4 out of range [-4, 3] for 3-bit signed integer"},
-		{"3-bit min underflow", 3, -5, true, "value -5 out of range [-4, 3] for 3-bit signed integer"},
-		{"8-bit max overflow", 8, 128, true, "value 128 out of range [-128, 127] for 8-bit signed integer"},
-		{"8-bit min underflow", 8, -129, true, "value -129 out of range [-128, 127] for 8-bit signed integer"},
-		{"16-bit max overflow", 16, 32768, true, "value 32768 out of range [-32768, 32767] for 16-bit signed integer"},
-		{"16-bit min underflow", 16, -32769, true, "value -32769 out of range [-32768, 32767] for 16-bit signed integer"},
+		{"3-bit max overflow", 3, 4, "value 4 out of range [-4, 3] for 3-bit signed integer"},
+		{"3-bit min underflow", 3, -5, "value -5 out of range [-4, 3] for 3-bit signed integer"},
+		{"8-bit max overflow", 8, 128, "value 128 out of range [-128, 127] for 8-bit signed integer"},
+		{"8-bit min underflow", 8, -129, "value -129 out of range [-128, 127] for 8-bit signed integer"},
+		{"16-bit max overflow", 16, 32768, "value 32768 out of range [-32768, 32767] for 16-bit signed integer"},
+		{"16-bit min underflow", 16, -32769, "value -32769 out of range [-32768, 32767] for 16-bit signed integer"},
 		
 		// Valid values should not error
-		{"3-bit valid max", 3, 3, false, ""},
-		{"3-bit valid min", 3, -4, false, ""},
-		{"8-bit valid max", 8, 127, false, ""},
-		{"8-bit valid min", 8, -128, false, ""},
+		{"3-bit valid max", 3, 3, ""},
+		{"3-bit valid min", 3, -4, ""},
+		{"8-bit valid max", 8, 127, ""},
+		{"8-bit valid min", 8, -128, ""},
 	}
 
 	for _, tt := range tests {
@@ -564,7 +541,7 @@ func TestStateSetOutOfRangeValues_INT(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -576,22 +553,21 @@ func TestStateSetOutOfRangeValues_INT(t *testing.T) {
 
 func TestStateSetOutOfRangeValues_UINT(t *testing.T) {
 	tests := []struct {
-		name      string
-		size      int
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		name   string
+		size   int
+		value  any
+		errMsg string
 	}{
-		{"3-bit overflow", 3, 8, true, "value 8 out of range [0, 7] for 3-bit unsigned integer"},
-		{"8-bit overflow", 8, 256, true, "value 256 out of range [0, 255] for 8-bit unsigned integer"},
-		{"16-bit overflow", 16, 65536, true, "value 65536 out of range [0, 65535] for 16-bit unsigned integer"},
-		{"negative value", 8, -1, true, "out of range"}, // ei.N converts -1 to max uint64
+		{"3-bit overflow", 3, 8, "value 8 out of range [0, 7] for 3-bit unsigned integer"},
+		{"8-bit overflow", 8, 256, "value 256 out of range [0, 255] for 8-bit unsigned integer"},
+		{"16-bit overflow", 16, 65536, "value 65536 out of range [0, 65535] for 16-bit unsigned integer"},
+		{"negative value", 8, -1, "out of range"}, // ei.N converts -1 to max uint64
 		
 		// Valid values should not error
-		{"3-bit valid max", 3, 7, false, ""},
-		{"8-bit valid max", 8, 255, false, ""},
-		{"16-bit valid max", 16, 65535, false, ""},
-		{"zero value", 8, 0, false, ""},
+		{"3-bit valid max", 3, 7, ""},
+		{"8-bit valid max", 8, 255, ""},
+		{"16-bit valid max", 16, 65535, ""},
+		{"zero value", 8, 0, ""},
 	}
 
 	for _, tt := range tests {
@@ -608,11 +584,9 @@ func TestStateSetOutOfRangeValues_UINT(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
-				if tt.errMsg != "" {
-					assert.Contains(t, err.Error(), tt.errMsg)
-				}
+				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -625,21 +599,20 @@ func TestStateSetOutOfRangeValues_FIXED(t *testing.T) {
 		name      string
 		size      int
 		decimals  uint
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		value     any
+		errMsg string
 	}{
-		{"10-bit 2-dec overflow", 10, 2, 5.12, true, "value 5.120000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point"},
-		{"10-bit 2-dec underflow", 10, 2, -5.13, true, "value -5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point"},
-		{"8-bit 1-dec overflow", 8, 1, 12.8, true, "value 12.800000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point"},
-		{"8-bit 1-dec underflow", 8, 1, -12.9, true, "value -12.900000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point"},
+		{"10-bit 2-dec overflow", 10, 2, 5.12, "value 5.120000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point"},
+		{"10-bit 2-dec underflow", 10, 2, -5.13, "value -5.130000 out of range [-5.120000, 5.110000] for 10-bit signed fixed-point"},
+		{"8-bit 1-dec overflow", 8, 1, 12.8, "value 12.800000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point"},
+		{"8-bit 1-dec underflow", 8, 1, -12.9, "value -12.900000 out of range [-12.800000, 12.700000] for 8-bit signed fixed-point"},
 		
 		// Valid values should not error
-		{"10-bit 2-dec valid max", 10, 2, 5.11, false, ""},
-		{"10-bit 2-dec valid min", 10, 2, -5.12, false, ""},
-		{"8-bit 1-dec valid max", 8, 1, 12.7, false, ""},
-		{"8-bit 1-dec valid min", 8, 1, -12.8, false, ""},
-		{"zero value", 10, 2, 0.0, false, ""},
+		{"10-bit 2-dec valid max", 10, 2, 5.11, ""},
+		{"10-bit 2-dec valid min", 10, 2, -5.12, ""},
+		{"8-bit 1-dec valid max", 8, 1, 12.7, ""},
+		{"8-bit 1-dec valid min", 8, 1, -12.8, ""},
+		{"zero value", 10, 2, 0.0, ""},
 	}
 
 	for _, tt := range tests {
@@ -656,7 +629,7 @@ func TestStateSetOutOfRangeValues_FIXED(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -671,20 +644,19 @@ func TestStateSetOutOfRangeValues_UFIXED(t *testing.T) {
 		name      string
 		size      int
 		decimals  uint
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		value     any
+		errMsg string
 	}{
-		{"10-bit 2-dec overflow", 10, 2, 10.24, true, "value 10.240000 out of range [0, 10.230000] for 10-bit unsigned fixed-point"},
-		{"8-bit 1-dec overflow", 8, 1, 25.6, true, "value 25.600000 out of range [0, 25.500000] for 8-bit unsigned fixed-point"},
-		{"negative value", 10, 2, -0.01, true, "value -0.010000 cannot be negative for unsigned fixed-point"},
-		{"large negative", 8, 1, -100.0, true, "cannot be negative for unsigned fixed-point"},
+		{"10-bit 2-dec overflow", 10, 2, 10.24, "value 10.240000 out of range [0, 10.230000] for 10-bit unsigned fixed-point"},
+		{"8-bit 1-dec overflow", 8, 1, 25.6, "value 25.600000 out of range [0, 25.500000] for 8-bit unsigned fixed-point"},
+		{"negative value", 10, 2, -0.01, "value -0.010000 cannot be negative for unsigned fixed-point"},
+		{"large negative", 8, 1, -100.0, "cannot be negative for unsigned fixed-point"},
 		
 		// Valid values should not error
-		{"10-bit 2-dec valid max", 10, 2, 10.23, false, ""},
-		{"8-bit 1-dec valid max", 8, 1, 25.5, false, ""},
-		{"zero value", 10, 2, 0.0, false, ""},
-		{"small positive", 10, 2, 0.01, false, ""},
+		{"10-bit 2-dec valid max", 10, 2, 10.23, ""},
+		{"8-bit 1-dec valid max", 8, 1, 25.5, ""},
+		{"zero value", 10, 2, 0.0, ""},
+		{"small positive", 10, 2, 0.01, ""},
 	}
 
 	for _, tt := range tests {
@@ -701,7 +673,7 @@ func TestStateSetOutOfRangeValues_UFIXED(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -713,23 +685,22 @@ func TestStateSetOutOfRangeValues_UFIXED(t *testing.T) {
 
 func TestStateSetOutOfRangeValues_BUFFER(t *testing.T) {
 	tests := []struct {
-		name      string
-		size      int
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		name   string
+		size   int
+		value  any
+		errMsg string
 	}{
-		{"oversized byte slice", 16, []byte{1, 2, 3}, true, "buffer size 24 bits exceeds field size 16 bits"},
-		{"oversized base64", 16, "SGVsbG8gV29ybGQ=", true, "buffer size 88 bits exceeds field size 16 bits"}, // "Hello World"
-		{"way oversized", 8, []byte{1, 2, 3, 4, 5}, true, "buffer size 40 bits exceeds field size 8 bits"},
-		{"invalid base64", 64, "not base64!", true, "buffer value is not valid base64"},
-		{"invalid type", 64, 123, true, "buffer value must be string (base64) or []byte"},
+		{"oversized byte slice", 16, []byte{1, 2, 3}, "buffer size 24 bits exceeds field size 16 bits"},
+		{"oversized string", 16, "This is too long", "buffer size 128 bits exceeds field size 16 bits"}, // 16 chars = 128 bits
+		{"way oversized", 8, []byte{1, 2, 3, 4, 5}, "buffer size 40 bits exceeds field size 8 bits"},
+		{"oversized string content", 64, "this string is too long for the buffer size", "buffer size 344 bits exceeds field size 64 bits"},
+		{"invalid type", 64, 123, "buffer value must be string or []byte"},
 		
 		// Valid values should not error
-		{"valid byte slice", 64, []byte{1, 2, 3, 4}, false, ""},
-		{"valid base64", 64, "SGVsbG8=", false, ""}, // "Hello"
-		{"empty buffer", 64, []byte{}, false, ""},
-		{"exactly fits", 16, []byte{1, 2}, false, ""}, // 16 bits
+		{"valid byte slice", 64, []byte{1, 2, 3, 4}, ""},
+		{"valid string", 64, "Hello", ""},
+		{"empty buffer", 64, []byte{}, ""},
+		{"exactly fits", 16, []byte{1, 2}, ""}, // 16 bits
 	}
 
 	for _, tt := range tests {
@@ -746,7 +717,7 @@ func TestStateSetOutOfRangeValues_BUFFER(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -760,22 +731,21 @@ func TestStateSetOutOfRangeValues_FLOAT(t *testing.T) {
 	tests := []struct {
 		name      string
 		fieldType StateFieldType
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		value     any
+		errMsg string
 	}{
-		{"float32 infinity", T_FLOAT32, math.Inf(1), true, "is not a finite number"},
-		{"float32 negative infinity", T_FLOAT32, math.Inf(-1), true, "is not a finite number"},
-		{"float32 NaN", T_FLOAT32, math.NaN(), true, "is not a finite number"},
-		{"float64 infinity", T_FLOAT64, math.Inf(1), true, "is not a finite number"},
-		{"float64 negative infinity", T_FLOAT64, math.Inf(-1), true, "is not a finite number"},
-		{"float64 NaN", T_FLOAT64, math.NaN(), true, "is not a finite number"},
+		{"float32 infinity", T_FLOAT32, math.Inf(1), "is not a finite number"},
+		{"float32 negative infinity", T_FLOAT32, math.Inf(-1), "is not a finite number"},
+		{"float32 NaN", T_FLOAT32, math.NaN(), "is not a finite number"},
+		{"float64 infinity", T_FLOAT64, math.Inf(1), "is not a finite number"},
+		{"float64 negative infinity", T_FLOAT64, math.Inf(-1), "is not a finite number"},
+		{"float64 NaN", T_FLOAT64, math.NaN(), "is not a finite number"},
 		
 		// Valid values should not error
-		{"float32 valid", T_FLOAT32, float32(3.14), false, ""},
-		{"float64 valid", T_FLOAT64, 3.14159265359, false, ""},
-		{"float32 max", T_FLOAT32, math.MaxFloat32, false, ""},
-		{"float64 max", T_FLOAT64, math.MaxFloat64, false, ""},
+		{"float32 valid", T_FLOAT32, float32(3.14), ""},
+		{"float64 valid", T_FLOAT64, 3.14159265359, ""},
+		{"float32 max", T_FLOAT32, math.MaxFloat32, ""},
+		{"float64 max", T_FLOAT64, math.MaxFloat64, ""},
 	}
 
 	for _, tt := range tests {
@@ -792,7 +762,7 @@ func TestStateSetOutOfRangeValues_FLOAT(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -805,21 +775,20 @@ func TestStateSetOutOfRangeValues_FLOAT(t *testing.T) {
 func TestStateSetOutOfRangeValues_BOOL(t *testing.T) {
 	tests := []struct {
 		name      string
-		value     interface{}
-		expectErr bool
-		errMsg    string
+		value     any
+		errMsg string
 	}{
-		{"invalid string", "maybe", true, "value is not a valid boolean"},
-		{"invalid object", map[string]int{"key": 1}, true, "value is not a valid boolean"},
-		{"invalid array", []int{1, 2, 3}, true, "value is not a valid boolean"},
-		{"complex number", complex(1, 2), true, "value is not a valid boolean"},
+		{"invalid string", "maybe", "value is not a valid boolean"},
+		{"invalid object", map[string]int{"key": 1}, "value is not a valid boolean"},
+		{"invalid array", []int{1, 2, 3}, "value is not a valid boolean"},
+		{"complex number", complex(1, 2), "value is not a valid boolean"},
 		
 		// Valid values should not error
-		{"bool true", true, false, ""},
-		{"bool false", false, false, ""},
-		{"int 1", 1, false, ""},
-		{"int 0", 0, false, ""},
-		{"float 3.14", 3.14, false, ""}, // ei.N can convert this to bool
+		{"bool true", true, ""},
+		{"bool false", false, ""},
+		{"int 1", 1, ""},
+		{"int 0", 0, ""},
+		{"float 3.14", 3.14, ""}, // ei.N can convert this to bool
 	}
 
 	for _, tt := range tests {
@@ -836,7 +805,7 @@ func TestStateSetOutOfRangeValues_BOOL(t *testing.T) {
 
 			err = state.Set("TEST_FIELD", tt.value)
 			
-			if tt.expectErr {
+			if tt.errMsg != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errMsg)
 			} else {
@@ -997,7 +966,7 @@ func TestGetRange_EdgeCases(t *testing.T) {
 			fieldType StateFieldType
 			size      int
 			decimals  uint
-			expectErr bool
+			shouldErr bool
 		}{
 			{"INT 65-bit", T_INT, 65, 0, false}, // Should be treated as 64-bit
 			{"UINT 65-bit", T_UINT, 65, 0, false}, // Should be treated as 64-bit
@@ -1014,7 +983,7 @@ func TestGetRange_EdgeCases(t *testing.T) {
 					fixedPointCachedFactor: math.Pow(10, float64(tt.decimals)),
 				}
 				min, max, err := field.GetRange()
-				if tt.expectErr {
+				if tt.shouldErr {
 					assert.Error(t, err)
 				} else {
 					assert.NoError(t, err)

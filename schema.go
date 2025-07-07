@@ -655,13 +655,10 @@ func (e *StateField) ValidateRange(value any) error {
 	case T_BUFFER:
 		switch v := value.(type) {
 		case string:
-			// Try to decode as base64
-			decoded, err := base64.StdEncoding.DecodeString(v)
-			if err != nil {
-				return fmt.Errorf("buffer value is not valid base64: %v", err)
-			}
+			// Accept any string value and convert to bytes for size validation
+			stringBytes := []byte(v)
 			// Check size constraints
-			bitSize := len(decoded) * 8
+			bitSize := len(stringBytes) * 8
 			if bitSize > e.Size {
 				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
 			}
@@ -672,7 +669,7 @@ func (e *StateField) ValidateRange(value any) error {
 				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
 			}
 		default:
-			return fmt.Errorf("buffer value must be string (base64) or []byte")
+			return fmt.Errorf("buffer value must be string or []byte")
 		}
 	default:
 		return fmt.Errorf("unknown field type %d", e.Type)
