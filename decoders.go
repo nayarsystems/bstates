@@ -11,11 +11,12 @@ import (
 // FieldDecoderType defines the type for different field decoder names.
 type FieldDecoderType string
 
-// Implemented decoders are: [BufferToStringDecoder], [NumberToUnixTsMsDecoder] and [IntMapDecoder].
+// Implemented decoders are: [BufferToStringDecoder], [NumberToUnixTsMsDecoder], [IntMapDecoder] and [FlagsDecoder].
 const (
 	BufferToStringDecoderType   FieldDecoderType = "BufferToString"
 	NumberToUnixTsMsDecoderType FieldDecoderType = "NumberToUnixTsMs"
 	IntMapDecoderType           FieldDecoderType = "IntMap"
+	FlagsDecoderType            FieldDecoderType = "Flags"
 )
 
 // Decoder is an interface that defines how to decode or transform state information. They
@@ -29,17 +30,17 @@ const (
 //   - Access the entire state, enabling more complex decoding logic that isn't limited to specific fields.
 //   - Define constant fields that do not depend on any state field, although this might have limited practical use.
 type Decoder interface {
-	Name() FieldDecoderType               // Decoder type
-	Decode(s *State) (interface{}, error) // function called to get the decoded value from the state
-	Encode(s *State, v any) error         // function called to encode the value into the state
-	GetParams() map[string]interface{}    // returns a MSI
+	Name() FieldDecoderType       // Decoder type
+	Decode(s *State) (any, error) // function called to get the decoded value from the state
+	Encode(s *State, v any) error // function called to encode the value into the state
+	GetParams() map[string]any    // returns a MSI
 }
 
 // NewDecoder creates a new [Decoder] instance based on the provided
 // decoder type and parameters.
 //
 // dtype: Should be one of [FieldDecoderType].
-func NewDecoder(dtype string, params map[string]interface{}) (d Decoder, err error) {
+func NewDecoder(dtype string, params map[string]any) (d Decoder, err error) {
 	switch FieldDecoderType(dtype) {
 	case BufferToStringDecoderType:
 		d, err = NewBufferToStringDecoder(params)
@@ -47,6 +48,8 @@ func NewDecoder(dtype string, params map[string]interface{}) (d Decoder, err err
 		d, err = NewIntMapDecoder(params)
 	case NumberToUnixTsMsDecoderType:
 		d, err = NewNumberToUnixTsMsDecoder(params)
+	case FlagsDecoderType:
+		d, err = NewFlagsDecoder(params)
 	default:
 		err = fmt.Errorf("unknown decoder \"%s\"", dtype)
 	}
@@ -59,13 +62,13 @@ type BufferToStringDecoder struct {
 	From string // "from" parameter: name of the encoded field as defined in StateSchema.Fields
 }
 
-func (d *BufferToStringDecoder) GetParams() map[string]interface{} {
-	m := map[string]interface{}{}
+func (d *BufferToStringDecoder) GetParams() map[string]any {
+	m := map[string]any{}
 	m["from"] = d.From
 	return m
 }
 
-func NewBufferToStringDecoder(params map[string]interface{}) (d *BufferToStringDecoder, err error) {
+func NewBufferToStringDecoder(params map[string]any) (d *BufferToStringDecoder, err error) {
 	d = &BufferToStringDecoder{}
 	d.From, err = ei.N(params).M("from").String()
 	if err != nil {
@@ -78,7 +81,7 @@ func (d *BufferToStringDecoder) Name() FieldDecoderType {
 	return BufferToStringDecoderType
 }
 
-func (d *BufferToStringDecoder) Decode(s *State) (interface{}, error) {
+func (d *BufferToStringDecoder) Decode(s *State) (any, error) {
 	fromValueI, err := s.Get(d.From)
 	if err != nil {
 		return nil, err
@@ -107,14 +110,14 @@ type IntMapDecoder struct {
 	MapId string // "mapId" parameter: name of the map as defined in the StateSchema.DecoderIntMaps
 }
 
-func (d *IntMapDecoder) GetParams() map[string]interface{} {
-	m := map[string]interface{}{}
+func (d *IntMapDecoder) GetParams() map[string]any {
+	m := map[string]any{}
 	m["from"] = d.From
 	m["mapId"] = d.MapId
 	return m
 }
 
-func NewIntMapDecoder(params map[string]interface{}) (d *IntMapDecoder, err error) {
+func NewIntMapDecoder(params map[string]any) (d *IntMapDecoder, err error) {
 	d = &IntMapDecoder{}
 	d.From, err = ei.N(params).M("from").String()
 	if err != nil {
@@ -131,7 +134,7 @@ func (d *IntMapDecoder) Name() FieldDecoderType {
 	return IntMapDecoderType
 }
 
-func (d *IntMapDecoder) Decode(s *State) (interface{}, error) {
+func (d *IntMapDecoder) Decode(s *State) (any, error) {
 	fromValueI, err := s.Get(d.From)
 	if err != nil {
 		return nil, err
@@ -166,15 +169,15 @@ type NumberToUnixTsMsDecoder struct {
 	Factor float64 // "factor"
 }
 
-func (d *NumberToUnixTsMsDecoder) GetParams() map[string]interface{} {
-	m := map[string]interface{}{}
+func (d *NumberToUnixTsMsDecoder) GetParams() map[string]any {
+	m := map[string]any{}
 	m["from"] = d.From
 	m["year"] = d.Year
 	m["factor"] = d.Factor
 	return m
 }
 
-func NewNumberToUnixTsMsDecoder(params map[string]interface{}) (d *NumberToUnixTsMsDecoder, err error) {
+func NewNumberToUnixTsMsDecoder(params map[string]any) (d *NumberToUnixTsMsDecoder, err error) {
 	d = &NumberToUnixTsMsDecoder{}
 	d.From, err = ei.N(params).M("from").String()
 	if err != nil {
@@ -201,7 +204,7 @@ func (d *NumberToUnixTsMsDecoder) Name() FieldDecoderType {
 	return NumberToUnixTsMsDecoderType
 }
 
-func (d *NumberToUnixTsMsDecoder) Decode(s *State) (interface{}, error) {
+func (d *NumberToUnixTsMsDecoder) Decode(s *State) (any, error) {
 	fromValueI, err := s.Get(d.From)
 	if err != nil {
 		return nil, err
@@ -227,4 +230,99 @@ func (d *NumberToUnixTsMsDecoder) Encode(s *State, v any) error {
 	offsetDateUnixMs := offsetDate.UnixMilli()
 
 	return s.Set(d.From, float64(int64(unixTsMs)-offsetDateUnixMs)/d.Factor)
+}
+
+type FlagsDecoder struct {
+	From  string           // "from" parameter: name of the encoded field as defined in StateSchema.Fields
+	Flags map[string]uint8 // "flags" parameter: map of flag name to bit position
+}
+
+func NewFlagsDecoder(params map[string]any) (d *FlagsDecoder, err error) {
+	d = &FlagsDecoder{}
+	d.From, err = ei.N(params).M("from").String()
+	if err != nil {
+		return nil, err
+	}
+	flagsM, err := ei.N(params).M("flags").MapStr()
+	if err != nil {
+		return nil, err
+	}
+	d.Flags = map[string]uint8{}
+	for k, v := range flagsM {
+		vv, err := ei.N(v).Uint8()
+		if err != nil {
+			return nil, fmt.Errorf("flag \"%s\" bit position error: %v", k, err)
+		}
+		// Note: Bit position validation against field size is performed at runtime
+		// during Encode/Decode operations when field schema information is available
+		d.Flags[k] = vv
+	}
+	return
+}
+
+func (d *FlagsDecoder) Name() FieldDecoderType {
+	return FlagsDecoderType
+}
+
+func (d *FlagsDecoder) GetParams() map[string]any {
+	m := map[string]any{}
+	m["from"] = d.From
+	m["flags"] = d.Flags
+	return m
+}
+
+func (d *FlagsDecoder) Decode(s *State) (any, error) {
+	// Get the field information to validate bit positions
+	field, exists := s.schema.fieldsMap[d.From]
+	if !exists {
+		return nil, fmt.Errorf("field \"%s\" not found in schema", d.From)
+	}
+
+	fromValueI, err := s.Get(d.From)
+	if err != nil {
+		return nil, err
+	}
+	fromValue, err := ei.N(fromValueI).Uint64()
+	if err != nil {
+		return nil, err
+	}
+	flags := []string{}
+	for fname, fbit := range d.Flags {
+		// Validate that the bit position fits within the field size
+		if int(fbit) >= field.Size {
+			return nil, fmt.Errorf("flag \"%s\" bit position %d exceeds field size %d bits", fname, fbit, field.Size)
+		}
+		if (fromValue & (1 << fbit)) != 0 {
+			flags = append(flags, fname)
+		}
+	}
+	return flags, nil
+}
+
+func (d *FlagsDecoder) Encode(s *State, v any) error {
+	// Get the field information to validate bit positions
+	field, exists := s.schema.fieldsMap[d.From]
+	if !exists {
+		return fmt.Errorf("field \"%s\" not found in schema", d.From)
+	}
+
+	// Only accept []string
+	flags, ok := v.([]string)
+	if !ok {
+		return fmt.Errorf("expected []string, got %T", v)
+	}
+
+	var fromValue uint64 = 0
+	for _, fname := range flags {
+		fbit, ok := d.Flags[fname]
+		if !ok {
+			return fmt.Errorf("unknown flag \"%s\"", fname)
+		}
+		// Validate that the bit position fits within the field size
+		if int(fbit) >= field.Size {
+			return fmt.Errorf("flag \"%s\" bit position %d exceeds field size %d bits", fname, fbit, field.Size)
+		}
+		fromValue |= (1 << fbit)
+	}
+	return s.Set(d.From, fromValue)
 }

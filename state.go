@@ -120,12 +120,12 @@ func (f *State) Set(fieldName string, newValue any) error {
 	if !ok {
 		return fmt.Errorf("field \"%s\" not found in schema", fieldName)
 	}
-	
+
 	// Validate the value range before setting
 	if err := field.ValidateRange(newValue); err != nil {
 		return fmt.Errorf("field \"%s\": %v", fieldName, err)
 	}
-	
+
 	switch field.Type {
 	case T_FIXED:
 		newValue = toSignedFixedPoint(newValue, field.fixedPointCachedFactor)
