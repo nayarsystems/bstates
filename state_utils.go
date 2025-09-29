@@ -9,9 +9,9 @@ import (
 // maps containing the corresponding MSI states.
 //
 // Each State is transformed into a map using the ToMsi() method.
-func StatesToMsiStates(states []*State) (out []map[string]interface{}, err error) {
+func StatesToMsiStates(states []*State) (out []map[string]any, err error) {
 	for _, e := range states {
-		var de map[string]interface{}
+		var de map[string]any
 		if de, err = e.ToMsi(); err != nil {
 			return
 		}
@@ -22,8 +22,9 @@ func StatesToMsiStates(states []*State) (out []map[string]interface{}, err error
 
 // GetDeltaMsiState compares two State objects and returns a map
 // containing the values that have changed between them.
-func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
-	data := map[string]interface{}{}
+// Includes aliases for backward compatibility, similar to State.ToMsi().
+func GetDeltaMsiState(from *State, to *State) (map[string]any, error) {
+	data := map[string]any{}
 	fields := to.GetFieldsDesc()
 	fieldNames := []string{}
 	for _, f := range fields {
@@ -43,6 +44,20 @@ func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 		}
 		if !reflect.DeepEqual(fromValue, toValue) {
 			data[name] = toValue
+
+			// Add aliases for regular fields that changed
+			if schemaField, exists := to.schema.fieldsMap[name]; exists && len(schemaField.Aliases) > 0 {
+				for _, alias := range schemaField.Aliases {
+					data[alias] = toValue
+				}
+			}
+
+			// Add aliases for decoded fields that changed
+			if decodedField, exists := to.schema.decodedFields[name]; exists && len(decodedField.Aliases) > 0 {
+				for _, alias := range decodedField.Aliases {
+					data[alias] = toValue
+				}
+			}
 		}
 	}
 	return data, nil
@@ -53,8 +68,8 @@ func GetDeltaMsiState(from *State, to *State) (map[string]interface{}, error) {
 //
 // The first State is converted to its MSI representation, and subsequent
 // States are compared to the last seen State using GetDeltaMsiState().
-func GetDeltaMsiStates(states []*State) ([]map[string]interface{}, error) {
-	out := []map[string]interface{}{}
+func GetDeltaMsiStates(states []*State) ([]map[string]any, error) {
+	out := []map[string]any{}
 	if len(states) > 0 {
 		evIni := states[0]
 		evIniMsi, err := evIni.ToMsi()

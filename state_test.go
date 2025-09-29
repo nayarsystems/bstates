@@ -270,6 +270,67 @@ func Test_GetDeltaMsiState(t *testing.T) {
 	require.Equal(t, edata, data)
 }
 
+func Test_GetDeltaMsiState_WithAliases(t *testing.T) {
+	// Test that GetDeltaMsiState includes aliases for changed fields
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name:         "temperature",
+				Aliases:      []string{"temp", "t"},
+				DefaultValue: 0,
+				Type:         T_INT,
+				Size:         16,
+			},
+			{
+				Name:         "pressure",
+				DefaultValue: 0,
+				Type:         T_INT,
+				Size:         16,
+				// No aliases for comparison
+			},
+		},
+		DecodedFields: []DecodedStateField{
+			{
+				Name:    "temp_celsius",
+				Aliases: []string{"temp_c", "celsius"},
+				Decoder: &IntMapDecoder{From: "temperature", MapId: "TEMP_MAP"},
+			},
+		},
+		DecoderIntMaps: map[string]map[int64]any{
+			"TEMP_MAP": {25: "NORMAL", 30: "HOT"},
+		},
+	})
+	require.Nil(t, err)
+
+	state1, err := CreateState(schema)
+	require.Nil(t, err)
+	state2, err := CreateState(schema)
+	require.Nil(t, err)
+
+	// Change temperature (has aliases) and pressure (no aliases)
+	state2.Set("temperature", 25)
+	state2.Set("pressure", 1013)
+
+	delta, err := GetDeltaMsiState(state1, state2)
+	require.Nil(t, err)
+
+	// Should include original field names
+	require.Equal(t, 25, delta["temperature"])
+	require.Equal(t, 1013, delta["pressure"])
+
+	// Should include aliases for temperature field
+	require.Equal(t, 25, delta["temp"])
+	require.Equal(t, 25, delta["t"])
+
+	// Should include decoded field and its aliases
+	require.Equal(t, "NORMAL", delta["temp_celsius"])
+	require.Equal(t, "NORMAL", delta["temp_c"])
+	require.Equal(t, "NORMAL", delta["celsius"])
+
+	// Pressure has no aliases, so no extra keys
+	require.NotContains(t, delta, "press")
+}
+
 func Test_FixedPoint(t *testing.T) {
 	schema, err := CreateStateSchema(&StateSchemaParams{
 		Fields: []StateField{
