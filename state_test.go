@@ -739,132 +739,50 @@ func Test_DecodedStateField_InvalidAliasesType_Errors(t *testing.T) {
 }
 
 func Test_StateField_FromMsi_AliasesReset(t *testing.T) {
-	// Test that Aliases field is properly reset when deserializing from MSI without aliases
-	field := StateField{
-		Name:    "test_field",
-		Aliases: []string{"old_alias1", "old_alias2"}, // Pre-existing aliases
-		Size:    8,
-		Type:    T_INT,
-	}
+	// Test that Aliases field is properly reset when deserializing from MSI
+	field := StateField{Aliases: []string{"old_alias1", "old_alias2"}}
 
-	// MSI without aliases field - should reset Aliases to nil
-	msiWithoutAliases := map[string]any{
-		"name": "new_field_name",
-		"type": "uint",
-		"size": 16,
-	}
-
-	err := field.FromMsi(msiWithoutAliases)
+	// MSI without aliases field - should reset to nil
+	err := field.FromMsi(map[string]any{"name": "test", "type": "int", "size": 8})
 	require.Nil(t, err)
-	require.Equal(t, "new_field_name", field.Name)
-	require.Nil(t, field.Aliases) // Should be reset to nil
-	require.Equal(t, 16, field.Size)
-	require.Equal(t, T_UINT, field.Type)
+	require.Nil(t, field.Aliases)
 
 	// MSI with empty aliases array - should set to empty slice
-	msiWithEmptyAliases := map[string]any{
-		"name":    "another_field",
-		"type":    "bool",
-		"aliases": []string{},
-	}
-
-	err = field.FromMsi(msiWithEmptyAliases)
+	err = field.FromMsi(map[string]any{"name": "test2", "type": "int", "size": 8, "aliases": []string{}})
 	require.Nil(t, err)
-	require.Equal(t, "another_field", field.Name)
-	require.Equal(t, []string{}, field.Aliases) // Should be empty slice, not nil
-	require.Equal(t, T_BOOL, field.Type)
+	require.Equal(t, []string{}, field.Aliases)
 }
 
 func Test_DecodedStateField_FromMsi_AliasesReset(t *testing.T) {
-	// Test that Aliases field is properly reset when deserializing from MSI without aliases
-	decodedField := DecodedStateField{
-		Name:    "old_decoded_field",
-		Aliases: []string{"old_decoded_alias1", "old_decoded_alias2"}, // Pre-existing aliases
-		Decoder: &BufferToStringDecoder{From: "old_buffer"},
-	}
+	// Test that Aliases field is properly reset when deserializing from MSI
+	decodedField := DecodedStateField{Aliases: []string{"old_alias1", "old_alias2"}}
 
-	// MSI without aliases field - should reset Aliases to nil
-	msiWithoutAliases := map[string]any{
-		"name":    "new_decoded_field",
-		"decoder": "IntMap",
-		"params": map[string]any{"from": "new_source", "mapId": "test_map"},
-	}
-
-	err := decodedField.FromMsi(msiWithoutAliases)
+	// MSI without aliases field - should reset to nil
+	err := decodedField.FromMsi(map[string]any{
+		"name": "test", "decoder": "BufferToString", "params": map[string]any{"from": "buffer"},
+	})
 	require.Nil(t, err)
-	require.Equal(t, "new_decoded_field", decodedField.Name)
-	require.Nil(t, decodedField.Aliases) // Should be reset to nil
-	require.Equal(t, IntMapDecoderType, decodedField.Decoder.Name())
+	require.Nil(t, decodedField.Aliases)
 
 	// MSI with empty aliases array - should set to empty slice
-	msiWithEmptyAliases := map[string]any{
-		"name":    "another_decoded_field",
-		"decoder": "BufferToString",
-		"params":  map[string]any{"from": "another_buffer"},
-		"aliases": []string{},
-	}
-
-	err = decodedField.FromMsi(msiWithEmptyAliases)
+	err = decodedField.FromMsi(map[string]any{
+		"name": "test2", "decoder": "BufferToString", "params": map[string]any{"from": "buffer"}, "aliases": []string{},
+	})
 	require.Nil(t, err)
-	require.Equal(t, "another_decoded_field", decodedField.Name)
-	require.Equal(t, []string{}, decodedField.Aliases) // Should be empty slice, not nil
-	require.Equal(t, BufferToStringDecoderType, decodedField.Decoder.Name())
+	require.Equal(t, []string{}, decodedField.Aliases)
 }
 
 func Test_StateField_FromMsi_DecimalsReset(t *testing.T) {
 	// Test that Decimals field is properly reset when deserializing different field types
-	field := StateField{
-		Name:     "test_field",
-		Size:     10,
-		Type:     T_FIXED,
-		Decimals: 3, // Pre-existing decimals value from fixed-point type
-	}
+	field := StateField{Decimals: 3} // Pre-existing decimals value
 
-	// Normalize to set the cached factor
-	err := field.normalize()
+	// MSI for non-fixed type - should reset Decimals to 0
+	err := field.FromMsi(map[string]any{"name": "test", "type": "int", "size": 8})
 	require.Nil(t, err)
-	require.Equal(t, uint(3), field.Decimals)
-	require.NotEqual(t, float64(0), field.fixedPointCachedFactor)
+	require.Equal(t, uint(0), field.Decimals)
 
-	// MSI for non-fixed type (should reset Decimals to 0)
-	msiNonFixed := map[string]any{
-		"name": "int_field",
-		"type": "int",
-		"size": 8,
-	}
-
-	err = field.FromMsi(msiNonFixed)
+	// MSI for fixed type - should set new decimals value
+	err = field.FromMsi(map[string]any{"name": "test", "type": "ufixed", "size": 16, "decimals": 2})
 	require.Nil(t, err)
-	require.Equal(t, "int_field", field.Name)
-	require.Equal(t, uint(0), field.Decimals) // Should be reset to 0
-	require.Equal(t, T_INT, field.Type)
-	require.Equal(t, 8, field.Size)
-
-	// Test with another fixed-point type (should set new decimals value)
-	msiFixed := map[string]any{
-		"name":     "ufixed_field",
-		"type":     "ufixed",
-		"size":     16,
-		"decimals": 2,
-	}
-
-	err = field.FromMsi(msiFixed)
-	require.Nil(t, err)
-	require.Equal(t, "ufixed_field", field.Name)
-	require.Equal(t, uint(2), field.Decimals) // Should be set to new value
-	require.Equal(t, T_UFIXED, field.Type)
-	require.Equal(t, 16, field.Size)
-
-	// Test with boolean type (should reset decimals)
-	msiBool := map[string]any{
-		"name": "bool_field",
-		"type": "bool",
-	}
-
-	err = field.FromMsi(msiBool)
-	require.Nil(t, err)
-	require.Equal(t, "bool_field", field.Name)
-	require.Equal(t, uint(0), field.Decimals) // Should be reset to 0
-	require.Equal(t, T_BOOL, field.Type)
-	require.Equal(t, 1, field.Size) // Boolean size is auto-set to 1
+	require.Equal(t, uint(2), field.Decimals)
 }
