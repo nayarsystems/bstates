@@ -447,3 +447,424 @@ func Test_SameValue(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, same) // -0.02 != -0.03
 }
+
+func Test_StateFieldAliases(t *testing.T) {
+	// Create schema with fields that have aliases
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name:         "temperature",
+				Aliases:      []string{"temp", "t"},
+				DefaultValue: 0,
+				Type:         T_INT,
+				Size:         16,
+			},
+			{
+				Name:         "pressure",
+				Aliases:      []string{"press", "p"},
+				DefaultValue: 0,
+				Type:         T_UINT,
+				Size:         16,
+			},
+			{
+				Name:         "status",
+				DefaultValue: false,
+				Type:         T_BOOL,
+				// No aliases for this field
+			},
+		},
+		DecodedFields: []DecodedStateField{
+			{
+				Name:    "temp_celsius",
+				Aliases: []string{"temp_c", "celsius"},
+				Decoder: &NumberToUnixTsMsDecoder{
+					From:   "temperature",
+					Year:   2020,
+					Factor: 100,
+				},
+			},
+		},
+	})
+	require.Nil(t, err)
+	state, err := CreateState(schema)
+	require.Nil(t, err)
+
+	// Set some values
+	err = state.Set("temperature", 25)
+	require.Nil(t, err)
+	err = state.Set("pressure", 1013)
+	require.Nil(t, err)
+	err = state.Set("status", true)
+	require.Nil(t, err)
+
+	// Convert to MSI and verify aliases are present
+	msi, err := state.ToMsi()
+	require.Nil(t, err)
+
+	// Check that original field names are present
+	require.Equal(t, 25, msi["temperature"])
+	require.Equal(t, uint64(1013), msi["pressure"])
+	require.Equal(t, true, msi["status"])
+
+	// Check that aliases are present with the same values
+	require.Equal(t, 25, msi["temp"])
+	require.Equal(t, 25, msi["t"])
+	require.Equal(t, uint64(1013), msi["press"])
+	require.Equal(t, uint64(1013), msi["p"])
+
+	// Check that decoded field aliases are present
+	require.Contains(t, msi, "temp_celsius") // original name
+	require.Contains(t, msi, "temp_c")       // alias 1
+	require.Contains(t, msi, "celsius")      // alias 2
+
+	// Check that all aliases have the same value as the original decoded field
+	require.Equal(t, msi["temp_celsius"], msi["temp_c"])
+	require.Equal(t, msi["temp_celsius"], msi["celsius"])
+
+	// Check total number of keys
+	// Expected: temperature(+2 aliases), pressure(+2 aliases), status, temp_celsius(+2 aliases) = 11 keys
+	expectedKeys := []string{
+		"temperature", "temp", "t", // regular field + aliases
+		"pressure", "press", "p", // regular field + aliases
+		"status",                            // field without aliases
+		"temp_celsius", "temp_c", "celsius", // decoded field + aliases
+	}
+	require.Len(t, msi, len(expectedKeys))
+
+	for _, key := range expectedKeys {
+		require.Contains(t, msi, key)
+	}
+
+	// Test that aliases work for empty aliases array
+	schemaNoAliases, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name:         "simple_field",
+				Aliases:      []string{}, // Empty aliases
+				DefaultValue: 42,
+				Type:         T_INT,
+				Size:         8,
+			},
+		},
+	})
+	require.Nil(t, err)
+	stateNoAliases, err := CreateState(schemaNoAliases)
+	require.Nil(t, err)
+
+	msiNoAliases, err := stateNoAliases.ToMsi()
+	require.Nil(t, err)
+	require.Len(t, msiNoAliases, 1)
+	require.Equal(t, 42, msiNoAliases["simple_field"])
+}
+
+func Test_StateFieldAliases_Serialization(t *testing.T) {
+	// Test that aliases are properly serialized/deserialized in StateField
+	originalField := StateField{
+		Name:         "test_field",
+		Aliases:      []string{"alias1", "alias2", "test_alias"},
+		Size:         8,
+		DefaultValue: 100,
+		Type:         T_UINT,
+	}
+
+	// Normalize the original field first (this is usually done during schema creation)
+	err := originalField.normalize()
+	require.Nil(t, err)
+
+	// Convert to MSI
+	msi, err := originalField.ToMsi()
+	require.Nil(t, err)
+	require.Equal(t, "test_field", msi["name"])
+	require.Equal(t, []string{"alias1", "alias2", "test_alias"}, msi["aliases"])
+
+	// Convert back from MSI
+	restoredField := StateField{}
+	err = restoredField.FromMsi(msi)
+	require.Nil(t, err)
+	require.Equal(t, originalField.Name, restoredField.Name)
+	require.Equal(t, originalField.Aliases, restoredField.Aliases)
+	require.Equal(t, originalField.Size, restoredField.Size)
+	require.Equal(t, originalField.Type, restoredField.Type)
+
+	// Test field with no aliases
+	fieldNoAliases := StateField{
+		Name:         "no_aliases",
+		Size:         16,
+		DefaultValue: 0,
+		Type:         T_INT,
+	}
+	err = fieldNoAliases.normalize()
+	require.Nil(t, err)
+
+	msiNoAliases, err := fieldNoAliases.ToMsi()
+	require.Nil(t, err)
+	require.NotContains(t, msiNoAliases, "aliases") // Should not include aliases key when empty
+
+	restoredNoAliases := StateField{}
+	err = restoredNoAliases.FromMsi(msiNoAliases)
+	require.Nil(t, err)
+	require.Equal(t, fieldNoAliases.Name, restoredNoAliases.Name)
+	require.Nil(t, restoredNoAliases.Aliases) // Should be nil when not present in MSI
+}
+
+func Test_StateField_InvalidAliasesType_Errors(t *testing.T) {
+	// Test StateField with invalid aliases type (not array)
+	invalidMsi := map[string]any{
+		"name":    "test_field",
+		"type":    "uint",
+		"size":    8,
+		"aliases": "not_an_array", // Invalid type
+	}
+
+	field := StateField{}
+	err := field.FromMsi(invalidMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "aliases field must be a string array, got string")
+
+	// Test StateField with invalid alias element type (not string)
+	// Note: ei.N() can convert numbers to strings, so we use a type that can't be converted
+	invalidElementMsi := map[string]any{
+		"name":    "test_field",
+		"type":    "uint",
+		"size":    8,
+		"aliases": []any{"valid_alias", map[string]string{"key": "value"}, "another_valid"}, // Element map can't be string
+	}
+
+	field2 := StateField{}
+	err = field2.FromMsi(invalidElementMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "alias at index 1 must be a string")
+
+	// Test StateField with mixed valid and invalid types in array
+	// Use a struct which can't be converted to string by ei.N()
+	mixedInvalidMsi := map[string]any{
+		"name":    "test_field",
+		"type":    "uint",
+		"size":    8,
+		"aliases": []any{struct{}{}, "valid_alias"}, // Element struct{} can't be string
+	}
+
+	field3 := StateField{}
+	err = field3.FromMsi(mixedInvalidMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "alias at index 0 must be a string")
+}
+
+func Test_DecodedStateField_Aliases_Serialization(t *testing.T) {
+	// Test that aliases are properly serialized/deserialized in DecodedStateField
+	originalDecodedField := DecodedStateField{
+		Name:    "decoded_temperature",
+		Aliases: []string{"decoded_temp", "d_temp", "temperature_decoded"},
+		Decoder: &NumberToUnixTsMsDecoder{
+			From:   "temp_raw",
+			Year:   2020,
+			Factor: 1000,
+		},
+	}
+
+	// Convert to MSI
+	msi, err := originalDecodedField.ToMsi()
+	require.Nil(t, err)
+	require.Equal(t, "decoded_temperature", msi["name"])
+	require.Equal(t, []string{"decoded_temp", "d_temp", "temperature_decoded"}, msi["aliases"])
+	require.Equal(t, string(NumberToUnixTsMsDecoderType), msi["decoder"])
+
+	// Convert back from MSI
+	restoredDecodedField := DecodedStateField{}
+	err = restoredDecodedField.FromMsi(msi)
+	require.Nil(t, err)
+	require.Equal(t, originalDecodedField.Name, restoredDecodedField.Name)
+	require.Equal(t, originalDecodedField.Aliases, restoredDecodedField.Aliases)
+	require.Equal(t, originalDecodedField.Decoder.Name(), restoredDecodedField.Decoder.Name())
+
+	// Test decoded field with no aliases
+	decodedFieldNoAliases := DecodedStateField{
+		Name: "simple_decoded",
+		Decoder: &BufferToStringDecoder{
+			From: "buffer_field",
+		},
+	}
+
+	msiNoAliases, err := decodedFieldNoAliases.ToMsi()
+	require.Nil(t, err)
+	require.NotContains(t, msiNoAliases, "aliases") // Should not include aliases key when empty
+
+	restoredNoAliases := DecodedStateField{}
+	err = restoredNoAliases.FromMsi(msiNoAliases)
+	require.Nil(t, err)
+	require.Equal(t, decodedFieldNoAliases.Name, restoredNoAliases.Name)
+	require.Nil(t, restoredNoAliases.Aliases) // Should be nil when not present in MSI
+}
+
+func Test_DecodedStateField_InvalidAliasesType_Errors(t *testing.T) {
+	// Test DecodedStateField with invalid aliases type (not array)
+	invalidMsi := map[string]any{
+		"name":    "decoded_field",
+		"decoder": "BufferToString",
+		"params":  map[string]any{"from": "buffer_field"},
+		"aliases": 42, // Invalid type
+	}
+
+	decodedField := DecodedStateField{}
+	err := decodedField.FromMsi(invalidMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "aliases field must be a string array, got int")
+
+	// Test DecodedStateField with invalid alias element type (not string)
+	// Use a type that can't be converted to string by ei.N()
+	invalidElementMsi := map[string]any{
+		"name":    "decoded_field",
+		"decoder": "BufferToString",
+		"params":  map[string]any{"from": "buffer_field"},
+		"aliases": []any{"valid_alias", []int{1, 2, 3}, "another_valid"}, // Element slice can't be string
+	}
+
+	decodedField2 := DecodedStateField{}
+	err = decodedField2.FromMsi(invalidElementMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "alias at index 1 must be a string")
+
+	// Test DecodedStateField with array of non-strings
+	nonStringArrayMsi := map[string]any{
+		"name":    "decoded_field",
+		"decoder": "BufferToString",
+		"params":  map[string]any{"from": "buffer_field"},
+		"aliases": []any{make(chan int), "valid_alias"}, // Element channel can't be string
+	}
+
+	decodedField3 := DecodedStateField{}
+	err = decodedField3.FromMsi(nonStringArrayMsi)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "alias at index 0 must be a string")
+}
+
+func Test_StateField_FromMsi_AliasesReset(t *testing.T) {
+	// Test that Aliases field is properly reset when deserializing from MSI without aliases
+	field := StateField{
+		Name:    "test_field",
+		Aliases: []string{"old_alias1", "old_alias2"}, // Pre-existing aliases
+		Size:    8,
+		Type:    T_INT,
+	}
+
+	// MSI without aliases field - should reset Aliases to nil
+	msiWithoutAliases := map[string]any{
+		"name": "new_field_name",
+		"type": "uint",
+		"size": 16,
+	}
+
+	err := field.FromMsi(msiWithoutAliases)
+	require.Nil(t, err)
+	require.Equal(t, "new_field_name", field.Name)
+	require.Nil(t, field.Aliases) // Should be reset to nil
+	require.Equal(t, 16, field.Size)
+	require.Equal(t, T_UINT, field.Type)
+
+	// MSI with empty aliases array - should set to empty slice
+	msiWithEmptyAliases := map[string]any{
+		"name":    "another_field",
+		"type":    "bool",
+		"aliases": []string{},
+	}
+
+	err = field.FromMsi(msiWithEmptyAliases)
+	require.Nil(t, err)
+	require.Equal(t, "another_field", field.Name)
+	require.Equal(t, []string{}, field.Aliases) // Should be empty slice, not nil
+	require.Equal(t, T_BOOL, field.Type)
+}
+
+func Test_DecodedStateField_FromMsi_AliasesReset(t *testing.T) {
+	// Test that Aliases field is properly reset when deserializing from MSI without aliases
+	decodedField := DecodedStateField{
+		Name:    "old_decoded_field",
+		Aliases: []string{"old_decoded_alias1", "old_decoded_alias2"}, // Pre-existing aliases
+		Decoder: &BufferToStringDecoder{From: "old_buffer"},
+	}
+
+	// MSI without aliases field - should reset Aliases to nil
+	msiWithoutAliases := map[string]any{
+		"name":    "new_decoded_field",
+		"decoder": "IntMap",
+		"params": map[string]any{"from": "new_source", "mapId": "test_map"},
+	}
+
+	err := decodedField.FromMsi(msiWithoutAliases)
+	require.Nil(t, err)
+	require.Equal(t, "new_decoded_field", decodedField.Name)
+	require.Nil(t, decodedField.Aliases) // Should be reset to nil
+	require.Equal(t, IntMapDecoderType, decodedField.Decoder.Name())
+
+	// MSI with empty aliases array - should set to empty slice
+	msiWithEmptyAliases := map[string]any{
+		"name":    "another_decoded_field",
+		"decoder": "BufferToString",
+		"params":  map[string]any{"from": "another_buffer"},
+		"aliases": []string{},
+	}
+
+	err = decodedField.FromMsi(msiWithEmptyAliases)
+	require.Nil(t, err)
+	require.Equal(t, "another_decoded_field", decodedField.Name)
+	require.Equal(t, []string{}, decodedField.Aliases) // Should be empty slice, not nil
+	require.Equal(t, BufferToStringDecoderType, decodedField.Decoder.Name())
+}
+
+func Test_StateField_FromMsi_DecimalsReset(t *testing.T) {
+	// Test that Decimals field is properly reset when deserializing different field types
+	field := StateField{
+		Name:     "test_field",
+		Size:     10,
+		Type:     T_FIXED,
+		Decimals: 3, // Pre-existing decimals value from fixed-point type
+	}
+
+	// Normalize to set the cached factor
+	err := field.normalize()
+	require.Nil(t, err)
+	require.Equal(t, uint(3), field.Decimals)
+	require.NotEqual(t, float64(0), field.fixedPointCachedFactor)
+
+	// MSI for non-fixed type (should reset Decimals to 0)
+	msiNonFixed := map[string]any{
+		"name": "int_field",
+		"type": "int",
+		"size": 8,
+	}
+
+	err = field.FromMsi(msiNonFixed)
+	require.Nil(t, err)
+	require.Equal(t, "int_field", field.Name)
+	require.Equal(t, uint(0), field.Decimals) // Should be reset to 0
+	require.Equal(t, T_INT, field.Type)
+	require.Equal(t, 8, field.Size)
+
+	// Test with another fixed-point type (should set new decimals value)
+	msiFixed := map[string]any{
+		"name":     "ufixed_field",
+		"type":     "ufixed",
+		"size":     16,
+		"decimals": 2,
+	}
+
+	err = field.FromMsi(msiFixed)
+	require.Nil(t, err)
+	require.Equal(t, "ufixed_field", field.Name)
+	require.Equal(t, uint(2), field.Decimals) // Should be set to new value
+	require.Equal(t, T_UFIXED, field.Type)
+	require.Equal(t, 16, field.Size)
+
+	// Test with boolean type (should reset decimals)
+	msiBool := map[string]any{
+		"name": "bool_field",
+		"type": "bool",
+	}
+
+	err = field.FromMsi(msiBool)
+	require.Nil(t, err)
+	require.Equal(t, "bool_field", field.Name)
+	require.Equal(t, uint(0), field.Decimals) // Should be reset to 0
+	require.Equal(t, T_BOOL, field.Type)
+	require.Equal(t, 1, field.Size) // Boolean size is auto-set to 1
+}

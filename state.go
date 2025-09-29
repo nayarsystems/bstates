@@ -158,7 +158,7 @@ func (f *State) getDecodedField(fieldName string) (value interface{}, err error)
 
 // ToMsi converts the [State] into a map[string]interface{} representation,
 // where each field's name is a key, and its corresponding value is the field's value.
-// It includes both regular fields and decoded fields.
+// It includes both regular fields, decoded fields, and field aliases for backward compatibility.
 func (e *State) ToMsi() (map[string]interface{}, error) {
 	data := map[string]interface{}{}
 	fields := e.GetFieldsDesc()
@@ -168,13 +168,27 @@ func (e *State) ToMsi() (map[string]interface{}, error) {
 			return nil, err
 		}
 		data[f.Name] = v
+
+		// Add aliases for this field
+		if schemaField, exists := e.schema.fieldsMap[f.Name]; exists && len(schemaField.Aliases) > 0 {
+			for _, alias := range schemaField.Aliases {
+				data[alias] = v
+			}
+		}
 	}
-	for name := range e.schema.decodedFields {
+	for name, decodedField := range e.schema.decodedFields {
 		v, err := e.Get(name)
 		if err != nil {
 			return nil, err
 		}
 		data[name] = v
+
+		// Add aliases for this decoded field
+		if len(decodedField.Aliases) > 0 {
+			for _, alias := range decodedField.Aliases {
+				data[alias] = v
+			}
+		}
 	}
 	return data, nil
 }

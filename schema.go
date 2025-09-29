@@ -28,24 +28,24 @@ const (
 // StateSchema represents the schema used for encoding/decoding states.
 // Fields within an schema can be plain or encoded.
 type StateSchema struct {
-	meta            map[string]any                   // Meta data associated with the schema
-	fields          []StateField                     // List of state fields defined in the schema
-	fieldsMap       map[string]*StateField           // Map of field names to StateField objects for quick access
-	decodedFields   map[string]DecodedStateField     // List of decoders defined in the schema
-	fieldsBitSize   int                              // Total size of fields in bits
-	fieldsByteSize  int                              // Total size of fields in bytes
-	encoderPipeline []string                         // Pipeline used for compressing an [StateQueue], an [StateQueue] is a set of states.
-	decoderPipeline []string                         // Pipeline used for decompressing an [StateQueue], same as [encoderPipeline] but in reverse order
-	decoderIntMaps  map[string]map[int64]interface{} // Integer mappings used for decoding encoded fields
+	meta            map[string]any               // Meta data associated with the schema
+	fields          []StateField                 // List of state fields defined in the schema
+	fieldsMap       map[string]*StateField       // Map of field names to StateField objects for quick access
+	decodedFields   map[string]DecodedStateField // List of decoders defined in the schema
+	fieldsBitSize   int                          // Total size of fields in bits
+	fieldsByteSize  int                          // Total size of fields in bytes
+	encoderPipeline []string                     // Pipeline used for compressing an [StateQueue], an [StateQueue] is a set of states.
+	decoderPipeline []string                     // Pipeline used for decompressing an [StateQueue], same as [encoderPipeline] but in reverse order
+	decoderIntMaps  map[string]map[int64]any     // Integer mappings used for decoding encoded fields
 }
 
 // StateSchemaParams represents the parameters for constructing a [StateSchema].
 type StateSchemaParams struct {
-	Meta            map[string]any                   // Meta data to associate with the schema
-	Fields          []StateField                     // List of fields to define in the schema
-	DecodedFields   []DecodedStateField              // List of decoded views to define in the schema
-	EncoderPipeline string                           // Encoder pipeline to use to package and unpackage a [StateQueue]
-	DecoderIntMaps  map[string]map[int64]interface{} // Integer mappings used for decoding encoded integer fields
+	Meta            map[string]any           // Meta data to associate with the schema
+	Fields          []StateField             // List of fields to define in the schema
+	DecodedFields   []DecodedStateField      // List of decoded views to define in the schema
+	EncoderPipeline string                   // Encoder pipeline to use to package and unpackage a [StateQueue]
+	DecoderIntMaps  map[string]map[int64]any // Integer mappings used for decoding encoded integer fields
 }
 
 // CreateStateSchema initializes a [StateSchema] from the provided parameters.
@@ -83,7 +83,7 @@ func CreateStateSchema(params *StateSchemaParams) (e *StateSchema, err error) {
 
 	e.decoderIntMaps = map[string]map[int64]interface{}{}
 	for mid, m := range params.DecoderIntMaps {
-		nm := make(map[int64]interface{})
+		nm := make(map[int64]any)
 		e.decoderIntMaps[mid] = nm
 		for i, v := range m {
 			nm[i] = v
@@ -128,7 +128,7 @@ func (s *StateSchema) CreateState() (*State, error) {
 }
 
 // ToMsi converts the StateSchema into a map[string]interface{} for serialization.
-func (s *StateSchema) ToMsi() map[string]interface{} {
+func (s *StateSchema) ToMsi() map[string]any {
 	decodedFieldsList := []DecodedStateField{}
 	for _, f := range s.decodedFields {
 		decodedFieldsList = append(decodedFieldsList, f)
@@ -136,7 +136,7 @@ func (s *StateSchema) ToMsi() map[string]interface{} {
 	sort.SliceStable(decodedFieldsList, func(i, j int) bool {
 		return decodedFieldsList[i].Name < decodedFieldsList[j].Name
 	})
-	data := map[string]interface{}{
+	data := map[string]any{
 		"version":         SCHEMA_VERSION_2_0,
 		"encoderPipeline": strings.Join(s.encoderPipeline, ":"),
 		"decoderIntMaps":  s.decoderIntMaps,
@@ -159,7 +159,7 @@ func (s *StateSchema) MarshalJSON() (res []byte, err error) {
 
 // UnmarshalJSON deserializes the JSON into a [StateSchema].
 func (s *StateSchema) UnmarshalJSON(b []byte) error {
-	var rawMap map[string]interface{}
+	var rawMap map[string]any
 	var err error
 	if err = json.Unmarshal(b, &rawMap); err != nil {
 		return err
@@ -182,14 +182,14 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	var rawFields []interface{}
+	var rawFields []any
 	if rawFields, err = ei.N(rawMap).M("fields").Slice(); err != nil {
 		return err
 	}
 	s.fieldsMap = map[string]*StateField{}
 	s.fields = []StateField{}
 	for _, rawField := range rawFields {
-		msi, ok := rawField.(map[string]interface{})
+		msi, ok := rawField.(map[string]any)
 		if !ok {
 			return fmt.Errorf("wrong type for state field")
 		}
@@ -209,14 +209,14 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 
 	decoderIntMapsRaw := ei.N(rawMap).M("decoderIntMaps").MapStrZ()
 
-	s.decoderIntMaps = map[string]map[int64]interface{}{}
+	s.decoderIntMaps = map[string]map[int64]any{}
 
 	for mapId, mapDataRaw := range decoderIntMapsRaw {
 		mapData, err := ei.N(mapDataRaw).MapStr()
 		if err != nil {
 			return fmt.Errorf("can't parse map \"%s\": %v", mapId, err)
 		}
-		newMap := map[int64]interface{}{}
+		newMap := map[int64]any{}
 		for fromStr, toValue := range mapData {
 			fromInt, err := strconv.ParseInt(fromStr, 10, 64)
 			if err != nil {
@@ -231,7 +231,7 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 	if version == SCHEMA_VERSION_2_0 {
 		rawFields := ei.N(rawMap).M("decodedFields").SliceZ()
 		for _, rawField := range rawFields {
-			msi, ok := rawField.(map[string]interface{})
+			msi, ok := rawField.(map[string]any)
 			if !ok {
 				return fmt.Errorf("wrong type for decoded state field")
 			}
@@ -267,7 +267,7 @@ func (s *StateSchema) UnmarshalJSON(b []byte) error {
 			field := DecodedStateField{
 				Name: name,
 			}
-			decoderParams := map[string]interface{}{}
+			decoderParams := map[string]any{}
 
 			decoderParams["from"], err = ei.N(msi).M("from").String()
 			if err != nil {
@@ -367,11 +367,42 @@ const (
 	T_UFIXED
 )
 
+// parseAliases is a helper function to parse aliases from MSI data.
+// Aliases provide backward compatibility by allowing access to fields using deprecated names.
+func parseAliases(aliasesRaw any) ([]string, error) {
+	if aliasesRaw == nil {
+		return nil, nil
+	}
+
+	// Try direct cast first (more efficient for []string)
+	var aliases []string
+	var isStringSlice bool
+	if aliases, isStringSlice = aliasesRaw.([]string); !isStringSlice {
+		// Fallback to ei.N conversion for other slice types
+		aliasesSlice, err := ei.N(aliasesRaw).Slice()
+		if err != nil {
+			return nil, fmt.Errorf("aliases field must be a string array, got %T", aliasesRaw)
+		}
+		if len(aliasesSlice) > 0 {
+			aliases = make([]string, len(aliasesSlice))
+			for i, alias := range aliasesSlice {
+				aliasStr, err := ei.N(alias).String()
+				if err != nil {
+					return nil, fmt.Errorf("alias at index %d must be a string, got %T", i, alias)
+				}
+				aliases[i] = aliasStr
+			}
+		}
+	}
+	return aliases, nil
+}
+
 // StateField defines a field in a [StateSchema].
 type StateField struct {
-	Name         string // Name of the field, used for retrieval
-	Size         int    // size in bits
-	DefaultValue interface{}
+	Name         string   // Name of the field, used for retrieval
+	Aliases      []string // Alternative names for accessing this field (used for backward compatibility with deprecated field names)
+	Size         int      // size in bits
+	DefaultValue any
 	Type         StateFieldType
 	Decimals     uint // Number of decimal places for fixed-point fields, ignored for non-fixed types
 
@@ -399,8 +430,8 @@ func (e *StateField) UnmarshalJSON(b []byte) error {
 }
 
 // ToMsi converts a StateField to a map[string]interface{} for further processing.
-func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
-	rawMap := map[string]interface{}{}
+func (e *StateField) ToMsi() (msiData map[string]any, err error) {
+	rawMap := map[string]any{}
 	rawMap["name"] = e.Name
 	var fieldTypeStr string
 	switch e.Type {
@@ -428,11 +459,14 @@ func (e *StateField) ToMsi() (msiData map[string]interface{}, err error) {
 	if e.DefaultValue != nil {
 		rawMap["defaultValue"] = e.DefaultValue
 	}
+	if len(e.Aliases) > 0 {
+		rawMap["aliases"] = e.Aliases
+	}
 	return rawMap, nil
 }
 
 // FromMsi initializes a StateField from a map[string]interface{}.
-func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
+func (e *StateField) FromMsi(rawField map[string]any) (err error) {
 	if e.Name = ei.N(rawField).M("name").StringZ(); e.Name == "" {
 		return fmt.Errorf("field name not found")
 	}
@@ -443,6 +477,9 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 
 	e.Size = ei.N(rawField).M("size").IntZ()
 	e.DefaultValue = ei.N(rawField).M("defaultValue").RawZ()
+	// Reset decimals and cached factor fields to ensure clean state
+	e.Decimals = 0
+	e.fixedPointCachedFactor = 0
 	switch {
 	case typeStr == "int":
 		e.Type = T_INT
@@ -465,13 +502,22 @@ func (e *StateField) FromMsi(rawField map[string]interface{}) (err error) {
 	default:
 		return fmt.Errorf("unkown field type '%s'", typeStr)
 	}
+
+	// Parse aliases using shared function
+	var aliases []string
+	aliases, err = parseAliases(ei.N(rawField).M("aliases").RawZ())
+	if err != nil {
+		return err
+	}
+	e.Aliases = aliases
+
 	err = e.normalize()
 	return
 }
 
 // normalize ensures the field's type and size are consistent and initialize default values.
 func (e *StateField) normalize() error {
-	var defaultValue interface{}
+	var defaultValue any
 	switch e.Type {
 	case T_INT:
 		if e.Size > 64 || e.Size <= 0 {
@@ -726,21 +772,25 @@ func (e *StateField) GetRange() (min, max any, err error) {
 //
 // The Name is used to access the decoded view. The raw encoded [StateField] is provided on the parameter "from" to the [Decoder].
 type DecodedStateField struct {
-	Name    string  // Name used to access this field
-	Decoder Decoder // Decoder used to access the original [StateField].
+	Name    string   // Name used to access this field
+	Aliases []string // Alternative names for accessing this decoded field (used for backward compatibility with deprecated field names)
+	Decoder Decoder  // Decoder used to access the original [StateField].
 }
 
 // ToMsi converts the DecodedStateField to a map representation.
-func (df *DecodedStateField) ToMsi() (map[string]interface{}, error) {
-	m := map[string]interface{}{}
+func (df *DecodedStateField) ToMsi() (map[string]any, error) {
+	m := map[string]any{}
 	m["name"] = df.Name
-	m["decoder"] = df.Decoder.Name()
+	m["decoder"] = string(df.Decoder.Name())
 	m["params"] = df.Decoder.GetParams()
+	if len(df.Aliases) > 0 {
+		m["aliases"] = df.Aliases
+	}
 	return m, nil
 }
 
 // FromMsi populates the DecodedStateField from a map representation.
-func (df *DecodedStateField) FromMsi(m map[string]interface{}) error {
+func (df *DecodedStateField) FromMsi(m map[string]any) error {
 	var err error
 	df.Name, err = ei.N(m).M("name").String()
 	if err != nil {
@@ -758,6 +808,15 @@ func (df *DecodedStateField) FromMsi(m map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
+
+	// Parse aliases using shared function
+	var aliases []string
+	aliases, err = parseAliases(ei.N(m).M("aliases").RawZ())
+	if err != nil {
+		return err
+	}
+	df.Aliases = aliases
+
 	return nil
 }
 
@@ -773,7 +832,7 @@ func (df *DecodedStateField) MarshalJSON() (res []byte, err error) {
 
 // UnmarshalJSON deserializes the JSON data into a DecodedStateField.
 func (df *DecodedStateField) UnmarshalJSON(b []byte) error {
-	var rawField map[string]interface{}
+	var rawField map[string]any
 	err := json.Unmarshal(b, &rawField)
 	if err != nil {
 		return fmt.Errorf("decoded field unmarshal error: %v", err)
