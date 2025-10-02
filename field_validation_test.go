@@ -338,8 +338,8 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 		{"empty string", 64, "", ""},
 		{"single byte", 8, []byte{255}, ""},
 		{"exactly max size", 8, []byte{1}, ""},
-		{"oversized byte slice", 16, []byte{1, 2, 3}, "buffer size 24 bits exceeds field size 16 bits"},
-		{"oversized string", 16, "Hello World", "buffer size 88 bits exceeds field size 16 bits"},
+		{"oversized byte slice", 16, []byte{1, 2, 3}, "exceeds field capacity"},
+		{"oversized string", 16, "Hello World", "exceeds field capacity"},
 		{"unicode string", 64, "Héllo", ""},
 		{"invalid type", 64, 123, "buffer value must be string or []byte"},
 		{"nil value", 64, nil, "buffer value must be string or []byte"},
@@ -362,6 +362,22 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 			}
 		})
 	}
+
+	// Test the specific bug case: 247-bit field should accept 31 bytes (248 bits)
+	t.Run("247-bit field accepts 31 bytes", func(t *testing.T) {
+		field := &StateField{Type: T_BUFFER, Size: 247}
+		bytes31 := make([]byte, 31) // 31 bytes = 248 bits
+		err := field.ValidateRange(bytes31)
+		assert.NoError(t, err, "247-bit buffer field should accept 31 bytes (248 bits)")
+	})
+
+	t.Run("247-bit field rejects 32 bytes", func(t *testing.T) {
+		field := &StateField{Type: T_BUFFER, Size: 247}
+		bytes32 := make([]byte, 32) // 32 bytes = 256 bits
+		err := field.ValidateRange(bytes32)
+		assert.Error(t, err, "247-bit buffer field should reject 32 bytes (256 bits)")
+		assert.Contains(t, err.Error(), "exceeds field capacity")
+	})
 }
 
 func TestFieldGetRange(t *testing.T) {
@@ -385,7 +401,7 @@ func TestFieldGetRange(t *testing.T) {
 		{"BOOL", T_BOOL, 1, 0, false, true, false},
 		{"FLOAT32", T_FLOAT32, 32, 0, float32(-math.MaxFloat32), float32(math.MaxFloat32), false},
 		{"FLOAT64", T_FLOAT64, 64, 0, -math.MaxFloat64, math.MaxFloat64, false},
-		{"BUFFER", T_BUFFER, 64, 0, 0, 64, false},
+		{"BUFFER", T_BUFFER, 64, 0, 0, 8, false}, // 64 bits = 8 bytes max
 
 		// Edge cases
 		{"INT 1-bit", T_INT, 1, 0, int64(-1), int64(0), false},
@@ -690,10 +706,10 @@ func TestStateSetOutOfRangeValues_BUFFER(t *testing.T) {
 		value  any
 		errMsg string
 	}{
-		{"oversized byte slice", 16, []byte{1, 2, 3}, "buffer size 24 bits exceeds field size 16 bits"},
-		{"oversized string", 16, "This is too long", "buffer size 128 bits exceeds field size 16 bits"}, // 16 chars = 128 bits
-		{"way oversized", 8, []byte{1, 2, 3, 4, 5}, "buffer size 40 bits exceeds field size 8 bits"},
-		{"oversized string content", 64, "this string is too long for the buffer size", "buffer size 344 bits exceeds field size 64 bits"},
+		{"oversized byte slice", 16, []byte{1, 2, 3}, "exceeds field capacity"},
+		{"oversized string", 16, "This is too long", "exceeds field capacity"}, // 16 chars = 128 bits
+		{"way oversized", 8, []byte{1, 2, 3, 4, 5}, "exceeds field capacity"},
+		{"oversized string content", 64, "this string is too long for the buffer size", "exceeds field capacity"},
 		{"invalid type", 64, 123, "buffer value must be string or []byte"},
 
 		// Valid values should not error

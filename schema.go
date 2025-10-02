@@ -699,20 +699,20 @@ func (e *StateField) ValidateRange(value any) error {
 			return fmt.Errorf("value %f is not a finite number", v)
 		}
 	case T_BUFFER:
+		// Calculate maximum allowed bytes (round up bits to next byte boundary)
+		maxBytes := (e.Size + 7) / 8
 		switch v := value.(type) {
 		case string:
 			// Accept any string value and convert to bytes for size validation
 			stringBytes := []byte(v)
-			// Check size constraints
-			bitSize := len(stringBytes) * 8
-			if bitSize > e.Size {
-				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
+			// Check size constraints in bytes
+			if len(stringBytes) > maxBytes {
+				return fmt.Errorf("buffer size %d bytes exceeds field capacity %d bytes (%d bits)", len(stringBytes), maxBytes, e.Size)
 			}
 		case []byte:
-			// Check size constraints
-			bitSize := len(v) * 8
-			if bitSize > e.Size {
-				return fmt.Errorf("buffer size %d bits exceeds field size %d bits", bitSize, e.Size)
+			// Check size constraints in bytes
+			if len(v) > maxBytes {
+				return fmt.Errorf("buffer size %d bytes exceeds field capacity %d bytes (%d bits)", len(v), maxBytes, e.Size)
 			}
 		default:
 			return fmt.Errorf("buffer value must be string or []byte")
@@ -762,7 +762,7 @@ func (e *StateField) GetRange() (min, max any, err error) {
 	case T_FLOAT64:
 		return -math.MaxFloat64, math.MaxFloat64, nil
 	case T_BUFFER:
-		return 0, e.Size, nil // Return bit size limits
+		return 0, (e.Size + 7) / 8, nil // Return byte capacity limits
 	default:
 		return nil, nil, fmt.Errorf("unknown field type %d", e.Type)
 	}
