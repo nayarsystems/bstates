@@ -1,6 +1,7 @@
 package bstates
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
@@ -111,21 +112,39 @@ func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
 // Set updates the value of the specified field in the [State].
 //
 // It first checks if the field is a decoded field and, if so, uses the schema's encoding logic.
-// Otherwise, it validates the value range and updates the field using default encoding logic for the type of the field.
+// Otherwise, it validates the value and updates the field using default encoding logic for the type of the field.
+//
+// For T_BUFFER fields with range errors (oversized data), the value is still written to allow
+// truncation during encode/decode, but an error is returned to notify about potential data loss.
 func (f *State) Set(fieldName string, newValue any) error {
+	// Handle decoded fields using their specific encoder
 	if df, ok := f.schema.decodedFields[fieldName]; ok {
 		return df.Decoder.Encode(f, newValue)
 	}
+	
+	// Find the field in the schema
 	field, ok := f.schema.fieldsMap[fieldName]
 	if !ok {
 		return fmt.Errorf("field \"%s\" not found in schema", fieldName)
 	}
 
-	// Validate the value range before setting
-	if err := field.ValidateRange(newValue); err != nil {
-		return fmt.Errorf("field \"%s\": %v", fieldName, err)
-	}
+	// Validate type and range before setting
+	validationErr := field.Validate(newValue)
 
+	if validationErr != nil {
+		// Type errors are always fatal - cannot proceed
+		if errors.Is(validationErr, ErrInvalidType) {
+			return fmt.Errorf("field \"%s\": %v", fieldName, validationErr)
+		}
+
+		// Range errors for non-T_BUFFER types are fatal
+		// For T_BUFFER, we allow the operation to continue (truncation will occur)
+		if field.Type != T_BUFFER {
+			return fmt.Errorf("field \"%s\": %v", fieldName, validationErr)
+		}
+	}
+	
+	// Convert fixed-point values to their internal representation
 	switch field.Type {
 	case T_FIXED:
 		newValue = toSignedFixedPoint(newValue, field.fixedPointCachedFactor)
@@ -133,7 +152,18 @@ func (f *State) Set(fieldName string, newValue any) error {
 		newValue = toUnsignedFixedPoint(newValue, field.fixedPointCachedFactor)
 	}
 
-	return f.Frame.Set(fieldName, newValue)
+	// Set the value (Frame.Set will handle truncation for T_BUFFER)
+	setErr := f.Frame.Set(fieldName, newValue)
+	if setErr != nil {
+		return setErr
+	}
+
+	// Return validation error for T_BUFFER after successful set (with truncation)
+	if validationErr != nil && field.Type == T_BUFFER {
+		return fmt.Errorf("field \"%s\": %v", fieldName, validationErr)
+	}
+
+	return nil
 }
 
 func toSignedFixedPoint(v any, factor float64) int64 {

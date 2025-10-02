@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/jaracil/ei"
 	"math"
@@ -367,6 +368,12 @@ const (
 	T_UFIXED
 )
 
+// ErrInvalidType represents a type validation error
+var ErrInvalidType = errors.New("invalid type")
+
+// ErrOutOfRange represents a range validation error
+var ErrOutOfRange = errors.New("out of range")
+
 // parseAliases is a helper function to parse aliases from MSI data.
 // Aliases provide backward compatibility by allowing access to fields using deprecated names.
 func parseAliases(aliasesRaw any) ([]string, error) {
@@ -601,124 +608,104 @@ func (e *StateField) normalize() error {
 	return nil
 }
 
-// ValidateRange validates that a value is within the valid range for this field type and size.
-func (e *StateField) ValidateRange(value any) error {
+// Validate validates that a value has the correct type and is within the valid range for this field type and size.
+func (e *StateField) Validate(value any) error {
 	switch e.Type {
 	case T_INT:
 		v, err := ei.N(value).Int64()
 		if err != nil {
-			return fmt.Errorf("value is not a valid integer: %v", err)
+			return fmt.Errorf("%w: cannot convert value to integer: %v", ErrInvalidType, err)
 		}
 		// Calculate valid range for signed integers
-		if e.Size == 64 {
-			// Full int64 range
-			return nil
-		}
 		maxValue := int64(1<<(e.Size-1)) - 1
 		minValue := -int64(1 << (e.Size - 1))
 		if v < minValue || v > maxValue {
-			return fmt.Errorf("value %d out of range [%d, %d] for %d-bit signed integer", v, minValue, maxValue, e.Size)
+			return fmt.Errorf("%w: value %d out of range [%d, %d] for %d-bit signed integer", ErrOutOfRange, v, minValue, maxValue, e.Size)
 		}
 	case T_UINT:
 		v, err := ei.N(value).Uint64()
 		if err != nil {
-			return fmt.Errorf("value is not a valid unsigned integer: %v", err)
+			return fmt.Errorf("%w: cannot convert value to unsigned integer: %v", ErrInvalidType, err)
 		}
 		// Calculate valid range for unsigned integers
-		if e.Size == 64 {
-			// Full uint64 range
-			return nil
-		}
 		maxValue := uint64(1<<e.Size) - 1
 		if v > maxValue {
-			return fmt.Errorf("value %d out of range [0, %d] for %d-bit unsigned integer", v, maxValue, e.Size)
+			return fmt.Errorf("%w: value %d out of range [0, %d] for %d-bit unsigned integer", ErrOutOfRange, v, maxValue, e.Size)
 		}
 	case T_FIXED:
 		v, err := ei.N(value).Float64()
 		if err != nil {
-			return fmt.Errorf("value is not a valid number: %v", err)
+			return fmt.Errorf("%w: cannot convert value to number: %v", ErrInvalidType, err)
 		}
 		// Calculate valid range for signed fixed-point
-		if e.Size == 64 {
-			// Full int64 range when scaled
-			maxScaled := float64(math.MaxInt64) / e.fixedPointCachedFactor
-			minScaled := float64(math.MinInt64) / e.fixedPointCachedFactor
-			if v < minScaled || v > maxScaled {
-				return fmt.Errorf("value %f out of range [%f, %f] for %d-bit signed fixed-point with %d decimals", v, minScaled, maxScaled, e.Size, e.Decimals)
-			}
-		} else {
-			maxValue := float64(int64(1<<(e.Size-1))-1) / e.fixedPointCachedFactor
-			minValue := float64(-int64(1<<(e.Size-1))) / e.fixedPointCachedFactor
-			if v < minValue || v > maxValue {
-				return fmt.Errorf("value %f out of range [%f, %f] for %d-bit signed fixed-point with %d decimals", v, minValue, maxValue, e.Size, e.Decimals)
-			}
+		maxValue := float64(int64(1<<(e.Size-1))-1) / e.fixedPointCachedFactor
+		minValue := float64(-int64(1<<(e.Size-1))) / e.fixedPointCachedFactor
+		if v < minValue || v > maxValue {
+			return fmt.Errorf("%w: value %f out of range [%f, %f] for %d-bit signed fixed-point with %d decimals", ErrOutOfRange, v, minValue, maxValue, e.Size, e.Decimals)
 		}
 	case T_UFIXED:
 		v, err := ei.N(value).Float64()
 		if err != nil {
-			return fmt.Errorf("value is not a valid number: %v", err)
+			return fmt.Errorf("%w: cannot convert value to number: %v", ErrInvalidType, err)
 		}
 		if v < 0 {
-			return fmt.Errorf("value %f cannot be negative for unsigned fixed-point", v)
+			return fmt.Errorf("%w: value %f cannot be negative for unsigned fixed-point", ErrOutOfRange, v)
 		}
 		// Calculate valid range for unsigned fixed-point
-		if e.Size == 64 {
-			// Full uint64 range when scaled
-			maxScaled := float64(math.MaxUint64) / e.fixedPointCachedFactor
-			if v > maxScaled {
-				return fmt.Errorf("value %f out of range [0, %f] for %d-bit unsigned fixed-point with %d decimals", v, maxScaled, e.Size, e.Decimals)
-			}
-		} else {
-			maxValue := float64(uint64(1<<e.Size)-1) / e.fixedPointCachedFactor
-			if v > maxValue {
-				return fmt.Errorf("value %f out of range [0, %f] for %d-bit unsigned fixed-point with %d decimals", v, maxValue, e.Size, e.Decimals)
-			}
+		maxValue := float64(uint64(1<<e.Size)-1) / e.fixedPointCachedFactor
+		if v > maxValue {
+			return fmt.Errorf("%w: value %f out of range [0, %f] for %d-bit unsigned fixed-point with %d decimals", ErrOutOfRange, v, maxValue, e.Size, e.Decimals)
 		}
 	case T_BOOL:
 		// Bool validation - accept various boolean representations
 		_, err := ei.N(value).Bool()
 		if err != nil {
-			return fmt.Errorf("value is not a valid boolean: %v", err)
+			return fmt.Errorf("%w: cannot convert value to boolean: %v", ErrInvalidType, err)
 		}
 	case T_FLOAT32:
 		v, err := ei.N(value).Float32()
 		if err != nil {
-			return fmt.Errorf("value is not a valid float32: %v", err)
+			return fmt.Errorf("%w: cannot convert value to float32: %v", ErrInvalidType, err)
 		}
 		// Check for infinity and NaN
 		if math.IsInf(float64(v), 0) || math.IsNaN(float64(v)) {
-			return fmt.Errorf("value %f is not a finite number", v)
+			return fmt.Errorf("%w: value %f is not a finite number", ErrOutOfRange, v)
 		}
 	case T_FLOAT64:
 		v, err := ei.N(value).Float64()
 		if err != nil {
-			return fmt.Errorf("value is not a valid float64: %v", err)
+			return fmt.Errorf("%w: cannot convert value to float64: %v", ErrInvalidType, err)
 		}
 		// Check for infinity and NaN
 		if math.IsInf(v, 0) || math.IsNaN(v) {
-			return fmt.Errorf("value %f is not a finite number", v)
+			return fmt.Errorf("%w: value %f is not a finite number", ErrOutOfRange, v)
 		}
 	case T_BUFFER:
-		// Calculate maximum allowed bytes (round up bits to next byte boundary)
-		maxBytes := (e.Size + 7) / 8
+		// Get maximum allowed bytes from GetRange()
+		_, maxBytesFloat, err := e.GetRange()
+		if err != nil {
+			return fmt.Errorf("%w: cannot get buffer range: %v", ErrInvalidType, err)
+		}
+		maxBytes := int(maxBytesFloat.(int))
+		
 		switch v := value.(type) {
 		case string:
 			// Accept any string value and convert to bytes for size validation
 			stringBytes := []byte(v)
 			// Check size constraints in bytes
 			if len(stringBytes) > maxBytes {
-				return fmt.Errorf("buffer size %d bytes exceeds field capacity %d bytes (%d bits)", len(stringBytes), maxBytes, e.Size)
+				return fmt.Errorf("%w: buffer size %d bytes exceeds field capacity %d bytes (%d bits)", ErrOutOfRange, len(stringBytes), maxBytes, e.Size)
 			}
 		case []byte:
 			// Check size constraints in bytes
 			if len(v) > maxBytes {
-				return fmt.Errorf("buffer size %d bytes exceeds field capacity %d bytes (%d bits)", len(v), maxBytes, e.Size)
+				return fmt.Errorf("%w: buffer size %d bytes exceeds field capacity %d bytes (%d bits)", ErrOutOfRange, len(v), maxBytes, e.Size)
 			}
 		default:
-			return fmt.Errorf("buffer value must be string or []byte")
+			return fmt.Errorf("%w: buffer value must be string or []byte", ErrInvalidType)
 		}
 	default:
-		return fmt.Errorf("unknown field type %d", e.Type)
+		return fmt.Errorf("%w: unknown field type %d", ErrInvalidType, e.Type)
 	}
 	return nil
 }

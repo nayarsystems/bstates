@@ -1,6 +1,7 @@
 package bstates
 
 import (
+	"errors"
 	"math"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFieldValidateRange_INT(t *testing.T) {
+func TestFieldValidate_INT(t *testing.T) {
 	tests := []struct {
 		name   string
 		size   int
@@ -39,7 +40,7 @@ func TestFieldValidateRange_INT(t *testing.T) {
 		{"64-bit min", 64, math.MinInt64, ""},
 
 		// Invalid types
-		{"string value", 8, "not a number", "value is not a valid integer"},
+		{"string value", 8, "not a number", "cannot convert value to integer"},
 		{"float value", 8, 3.14, ""}, // ei.N should handle this
 	}
 
@@ -50,7 +51,7 @@ func TestFieldValidateRange_INT(t *testing.T) {
 				Size: tt.size,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -62,7 +63,7 @@ func TestFieldValidateRange_INT(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_UINT(t *testing.T) {
+func TestFieldValidate_UINT(t *testing.T) {
 	tests := []struct {
 		name   string
 		size   int
@@ -91,7 +92,7 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 		{"64-bit min", 64, uint64(0), ""},
 
 		// Invalid types
-		{"string value", 8, "not a number", "value is not a valid unsigned integer"},
+		{"string value", 8, "not a number", "cannot convert value to unsigned integer"},
 	}
 
 	for _, tt := range tests {
@@ -101,7 +102,7 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 				Size: tt.size,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -113,7 +114,7 @@ func TestFieldValidateRange_UINT(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_FIXED(t *testing.T) {
+func TestFieldValidate_FIXED(t *testing.T) {
 	tests := []struct {
 		name     string
 		size     int
@@ -138,7 +139,7 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 		{"64-bit min", 64, 2, float64(math.MinInt64) / 100, ""},
 
 		// Invalid types
-		{"string value", 10, 2, "not a number", "value is not a valid number"},
+		{"string value", 10, 2, "not a number", "cannot convert value to number"},
 	}
 
 	for _, tt := range tests {
@@ -150,7 +151,7 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 				fixedPointCachedFactor: math.Pow(10, float64(tt.decimals)),
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -162,7 +163,7 @@ func TestFieldValidateRange_FIXED(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_UFIXED(t *testing.T) {
+func TestFieldValidate_UFIXED(t *testing.T) {
 	tests := []struct {
 		name     string
 		size     int
@@ -186,7 +187,7 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 		{"64-bit min", 64, 2, 0.0, ""},
 
 		// Invalid types
-		{"string value", 10, 2, "not a number", "value is not a valid number"},
+		{"string value", 10, 2, "not a number", "cannot convert value to number"},
 	}
 
 	for _, tt := range tests {
@@ -198,7 +199,7 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 				fixedPointCachedFactor: math.Pow(10, float64(tt.decimals)),
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -210,7 +211,7 @@ func TestFieldValidateRange_UFIXED(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_BOOL(t *testing.T) {
+func TestFieldValidate_BOOL(t *testing.T) {
 	tests := []struct {
 		name   string
 		value  any
@@ -222,12 +223,12 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 		{"int 0", 0, ""},
 		{"int 2", 2, ""},   // ei.N should convert non-zero to true
 		{"int -1", -1, ""}, // ei.N should convert non-zero to true
-		{"string true", "true", "value is not a valid boolean"},
-		{"string false", "false", "value is not a valid boolean"},
-		{"string invalid", "maybe", "value is not a valid boolean"},
+		{"string true", "true", "cannot convert value to boolean"},
+		{"string false", "false", "cannot convert value to boolean"},
+		{"string invalid", "maybe", "cannot convert value to boolean"},
 		{"float", 3.14, ""},
 		{"float zero", 0.0, ""},
-		{"nil value", nil, "value is not a valid boolean"},
+		{"nil value", nil, "cannot convert value to boolean"},
 	}
 
 	for _, tt := range tests {
@@ -237,7 +238,7 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 				Size: 1,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -248,7 +249,7 @@ func TestFieldValidateRange_BOOL(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_FLOAT32(t *testing.T) {
+func TestFieldValidate_FLOAT32(t *testing.T) {
 	tests := []struct {
 		name   string
 		value  any
@@ -263,7 +264,7 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 		{"infinity", math.Inf(1), "is not a finite number"},
 		{"negative infinity", math.Inf(-1), "is not a finite number"},
 		{"NaN", math.NaN(), "is not a finite number"},
-		{"string value", "not a number", "value is not a valid float32"},
+		{"string value", "not a number", "cannot convert value to float32"},
 		{"integer value", 42, ""},
 		{"zero", 0.0, ""},
 	}
@@ -275,7 +276,7 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 				Size: 32,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -287,7 +288,7 @@ func TestFieldValidateRange_FLOAT32(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_FLOAT64(t *testing.T) {
+func TestFieldValidate_FLOAT64(t *testing.T) {
 	tests := []struct {
 		name   string
 		value  any
@@ -301,7 +302,7 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 		{"infinity", math.Inf(1), "is not a finite number"},
 		{"negative infinity", math.Inf(-1), "is not a finite number"},
 		{"NaN", math.NaN(), "is not a finite number"},
-		{"string value", "not a number", "value is not a valid float64"},
+		{"string value", "not a number", "cannot convert value to float64"},
 		{"integer value", 42, ""},
 		{"zero", 0.0, ""},
 	}
@@ -313,7 +314,7 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 				Size: 64,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -325,7 +326,7 @@ func TestFieldValidateRange_FLOAT64(t *testing.T) {
 	}
 }
 
-func TestFieldValidateRange_BUFFER(t *testing.T) {
+func TestFieldValidate_BUFFER(t *testing.T) {
 	tests := []struct {
 		name   string
 		size   int
@@ -352,7 +353,7 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 				Size: tt.size,
 			}
 
-			err := field.ValidateRange(tt.value)
+			err := field.Validate(tt.value)
 
 			if tt.errMsg != "" {
 				assert.Error(t, err)
@@ -367,16 +368,67 @@ func TestFieldValidateRange_BUFFER(t *testing.T) {
 	t.Run("247-bit field accepts 31 bytes", func(t *testing.T) {
 		field := &StateField{Type: T_BUFFER, Size: 247}
 		bytes31 := make([]byte, 31) // 31 bytes = 248 bits
-		err := field.ValidateRange(bytes31)
+		err := field.Validate(bytes31)
 		assert.NoError(t, err, "247-bit buffer field should accept 31 bytes (248 bits)")
 	})
 
 	t.Run("247-bit field rejects 32 bytes", func(t *testing.T) {
 		field := &StateField{Type: T_BUFFER, Size: 247}
 		bytes32 := make([]byte, 32) // 32 bytes = 256 bits
-		err := field.ValidateRange(bytes32)
+		err := field.Validate(bytes32)
 		assert.Error(t, err, "247-bit buffer field should reject 32 bytes (256 bits)")
 		assert.Contains(t, err.Error(), "exceeds field capacity")
+	})
+}
+
+func TestValidateTypedErrors(t *testing.T) {
+	// Test that Validate returns properly typed errors
+	t.Run("Type errors", func(t *testing.T) {
+		field := &StateField{Type: T_INT, Size: 8}
+		
+		// Invalid type should return ErrInvalidType
+		err := field.Validate("not a number")
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidType), "Should be ErrInvalidType")
+		assert.False(t, errors.Is(err, ErrOutOfRange), "Should not be ErrOutOfRange")
+	})
+
+	t.Run("Range errors", func(t *testing.T) {
+		field := &StateField{Type: T_INT, Size: 8}
+		
+		// Out of range should return ErrOutOfRange
+		err := field.Validate(256) // 8-bit int max is 127
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrOutOfRange), "Should be ErrOutOfRange")
+		assert.False(t, errors.Is(err, ErrInvalidType), "Should not be ErrInvalidType")
+	})
+
+	t.Run("Buffer type errors", func(t *testing.T) {
+		field := &StateField{Type: T_BUFFER, Size: 64}
+		
+		// Invalid type should return ErrInvalidType
+		err := field.Validate(123)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrInvalidType), "Should be ErrInvalidType")
+		assert.False(t, errors.Is(err, ErrOutOfRange), "Should not be ErrOutOfRange")
+	})
+
+	t.Run("Buffer range errors", func(t *testing.T) {
+		field := &StateField{Type: T_BUFFER, Size: 8} // 1 byte max
+		
+		// Oversized buffer should return ErrOutOfRange
+		err := field.Validate([]byte{1, 2, 3}) // 3 bytes > 1 byte
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, ErrOutOfRange), "Should be ErrOutOfRange")
+		assert.False(t, errors.Is(err, ErrInvalidType), "Should not be ErrInvalidType")
+	})
+
+	t.Run("Valid values", func(t *testing.T) {
+		field := &StateField{Type: T_INT, Size: 8}
+		
+		// Valid value should return nil
+		err := field.Validate(42)
+		assert.NoError(t, err)
 	})
 }
 
@@ -794,10 +846,10 @@ func TestStateSetOutOfRangeValues_BOOL(t *testing.T) {
 		value  any
 		errMsg string
 	}{
-		{"invalid string", "maybe", "value is not a valid boolean"},
-		{"invalid object", map[string]int{"key": 1}, "value is not a valid boolean"},
-		{"invalid array", []int{1, 2, 3}, "value is not a valid boolean"},
-		{"complex number", complex(1, 2), "value is not a valid boolean"},
+		{"invalid string", "maybe", "cannot convert value to boolean"},
+		{"invalid object", map[string]int{"key": 1}, "cannot convert value to boolean"},
+		{"invalid array", []int{1, 2, 3}, "cannot convert value to boolean"},
+		{"complex number", complex(1, 2), "cannot convert value to boolean"},
 
 		// Valid values should not error
 		{"bool true", true, ""},
@@ -897,16 +949,16 @@ func TestErrorReturnedForOutOfRangeValues(t *testing.T) {
 	}
 }
 
-// TestValidateRange_InvalidFieldConfigurations tests edge cases and invalid configurations
+// TestValidate_InvalidFieldConfigurations tests edge cases and invalid configurations
 // that should return errors, including unknown field types and improperly initialized fields.
-func TestValidateRange_InvalidFieldConfigurations(t *testing.T) {
+func TestValidate_InvalidFieldConfigurations(t *testing.T) {
 	// Test unknown field type
 	t.Run("unknown field type", func(t *testing.T) {
 		field := &StateField{
 			Type: StateFieldType(99), // Invalid type
 			Size: 8,
 		}
-		err := field.ValidateRange(42)
+		err := field.Validate(42)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unknown field type")
 	})
@@ -920,7 +972,7 @@ func TestValidateRange_InvalidFieldConfigurations(t *testing.T) {
 			// fixedPointCachedFactor not set - should be 100
 		}
 		// This should still work because division by 0 is handled
-		err := field.ValidateRange(1.5)
+		err := field.Validate(1.5)
 		// The implementation might panic or return incorrect results without cached factor
 		// This test verifies the current behavior
 		if err != nil {
@@ -936,7 +988,7 @@ func TestValidateRange_InvalidFieldConfigurations(t *testing.T) {
 			Decimals:               2,
 			fixedPointCachedFactor: 100.0,
 		}
-		err := field.ValidateRange(1.5)
+		err := field.Validate(1.5)
 		assert.NoError(t, err)
 	})
 }
@@ -1032,7 +1084,7 @@ func TestFieldValidation_ConcurrentAccess(t *testing.T) {
 				// Test both valid and invalid values
 				values := []any{1.5, -2.3, 10.0, -10.0} // Mix of valid and invalid
 				for _, value := range values {
-					err := field.ValidateRange(value)
+					err := field.Validate(value)
 					// Just ensure no panics occur
 					_ = err
 				}

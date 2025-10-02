@@ -847,3 +847,62 @@ func Test_StateField_FromMsi_DecimalsReset(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, uint(2), field.Decimals)
 }
+
+func Test_State_Set_BufferTruncation(t *testing.T) {
+	// Test that T_BUFFER fields return error but still write data (truncation happens on encode/decode)
+	schema, err := CreateStateSchema(&StateSchemaParams{
+		Fields: []StateField{
+			{
+				Name: "small_buffer",
+				Type: T_BUFFER,
+				Size: 16, // 2 bytes max
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	state, err := CreateState(schema)
+	require.Nil(t, err)
+
+	// Try to set 3 bytes (should error but still write the full value)
+	oversizedData := []byte{0xAA, 0xBB, 0xCC}
+	err = state.Set("small_buffer", oversizedData)
+	require.Error(t, err, "Should return error for oversized buffer")
+	require.Contains(t, err.Error(), "exceeds field capacity")
+
+	// The value is stored as-is (not truncated yet)
+	value, err := state.Get("small_buffer")
+	require.Nil(t, err)
+	fullBytes, ok := value.([]byte)
+	require.True(t, ok)
+	require.Equal(t, oversizedData, fullBytes, "Value stored as-is before encode/decode")
+
+	// However, when we encode and decode, truncation should occur
+	encodedData, err := state.Encode()
+	require.Nil(t, err)
+
+	// Create a new state and decode the data
+	newState, err := CreateState(schema)
+	require.Nil(t, err)
+	err = newState.Decode(encodedData)
+	require.Nil(t, err)
+
+	// Now the truncated value should be visible
+	value, err = newState.Get("small_buffer")
+	require.Nil(t, err)
+	truncatedBytes, ok := value.([]byte)
+	require.True(t, ok)
+	// Should contain only the first 2 bytes due to truncation during encode/decode
+	require.Equal(t, []byte{0xAA, 0xBB}, truncatedBytes, "Value truncated after encode/decode")
+
+	// Test with valid size (should not error)
+	validData := []byte{0xDD, 0xEE}
+	err = state.Set("small_buffer", validData)
+	require.Nil(t, err, "Should not error for valid size")
+
+	value, err = state.Get("small_buffer")
+	require.Nil(t, err)
+	resultBytes, ok := value.([]byte)
+	require.True(t, ok)
+	require.Equal(t, validData, resultBytes)
+}
