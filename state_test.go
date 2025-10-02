@@ -618,8 +618,8 @@ func Test_StateFieldAliases(t *testing.T) {
 	require.Equal(t, 42, msiNoAliases["simple_field"])
 }
 
-func Test_StateFieldAliases_Serialization(t *testing.T) {
-	// Test that aliases are properly serialized/deserialized in StateField
+func Test_StateFieldAliases_MsiConversion(t *testing.T) {
+	// Test that aliases are properly converted to/from MSI in StateField
 	originalField := StateField{
 		Name:         "test_field",
 		Aliases:      []string{"alias1", "alias2", "test_alias"},
@@ -711,8 +711,8 @@ func Test_StateField_InvalidAliasesType_Errors(t *testing.T) {
 	require.Contains(t, err.Error(), "alias at index 0 must be a string")
 }
 
-func Test_DecodedStateField_Aliases_Serialization(t *testing.T) {
-	// Test that aliases are properly serialized/deserialized in DecodedStateField
+func Test_DecodedStateField_Aliases_MsiConversion(t *testing.T) {
+	// Test that aliases are properly converted to/from MSI in DecodedStateField
 	originalDecodedField := DecodedStateField{
 		Name:    "decoded_temperature",
 		Aliases: []string{"decoded_temp", "d_temp", "temperature_decoded"},
