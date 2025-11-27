@@ -533,62 +533,122 @@ func Test_StateFieldAliases(t *testing.T) {
 				Type:         T_BOOL,
 				// No aliases for this field
 			},
+			{
+				Name:         "dateRaw",
+				DefaultValue: false,
+				Type:         T_UINT,
+				Size:         32,
+				Aliases:      []string{"timestampRaw", "datetimeRaw"},
+			},
 		},
 		DecodedFields: []DecodedStateField{
 			{
-				Name:    "temp_celsius",
-				Aliases: []string{"temp_c", "celsius"},
+				Name:    "date",
+				Aliases: []string{"timestamp", "datetime"},
 				Decoder: &NumberToUnixTsMsDecoder{
-					From:   "temperature",
+					From:   "dateRaw",
 					Year:   2020,
-					Factor: 100,
+					Factor: 1,
 				},
 			},
 		},
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	state, err := CreateState(schema)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Set some values
 	err = state.Set("temperature", 25)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = state.Set("pressure", 1013)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	err = state.Set("status", true)
-	require.Nil(t, err)
+	require.NoError(t, err)
+	err = state.Set("dateRaw", 0)
+	require.NoError(t, err)
 
 	// Convert to MSI and verify aliases are present
 	msi, err := state.ToMsi()
-	require.Nil(t, err)
+	require.NoError(t, err)
+
+	requireEqual := func(t *testing.T, s *State, msi map[string]any, fieldName string, expected any) {
+		require.Equal(t, expected, msi[fieldName])
+		v, err := s.Get(fieldName)
+		require.NoError(t, err)
+		require.Equal(t, expected, v)
+	}
 
 	// Check that original field names are present
-	require.Equal(t, 25, msi["temperature"])
-	require.Equal(t, uint64(1013), msi["pressure"])
-	require.Equal(t, true, msi["status"])
+	requireEqual(t, state, msi, "temperature", 25)
+	requireEqual(t, state, msi, "pressure", uint64(1013))
+	requireEqual(t, state, msi, "status", true)
+	requireEqual(t, state, msi, "dateRaw", uint64(0))
+	requireEqual(t, state, msi, "date", uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).UnixMilli()))
 
 	// Check that aliases are present with the same values
-	require.Equal(t, 25, msi["temp"])
-	require.Equal(t, 25, msi["t"])
-	require.Equal(t, uint64(1013), msi["press"])
-	require.Equal(t, uint64(1013), msi["p"])
+	requireEqual(t, state, msi, "temp", 25)
+	requireEqual(t, state, msi, "t", 25)
+	requireEqual(t, state, msi, "press", uint64(1013))
+	requireEqual(t, state, msi, "p", uint64(1013))
+	requireEqual(t, state, msi, "timestampRaw", uint64(0))
+	requireEqual(t, state, msi, "datetimeRaw", uint64(0))
+	requireEqual(t, state, msi, "timestamp", uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "datetime", uint64(time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC).UnixMilli()))
 
-	// Check that decoded field aliases are present
-	require.Contains(t, msi, "temp_celsius") // original name
-	require.Contains(t, msi, "temp_c")       // alias 1
-	require.Contains(t, msi, "celsius")      // alias 2
+	// Update decoder's raw field and check decoded aliases
+	err = state.Set("dateRaw", 1000) // 1000 ms after epoch
+	require.NoError(t, err)
+	msi, err = state.ToMsi()
+	require.NoError(t, err)
 
-	// Check that all aliases have the same value as the original decoded field
-	require.Equal(t, msi["temp_celsius"], msi["temp_c"])
-	require.Equal(t, msi["temp_celsius"], msi["celsius"])
+	requireEqual(t, state, msi, "date", uint64(time.Date(2020, time.January, 1, 0, 0, 1, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "timestamp", uint64(time.Date(2020, time.January, 1, 0, 0, 1, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "datetime", uint64(time.Date(2020, time.January, 1, 0, 0, 1, 0, time.UTC).UnixMilli()))
+
+	// Update decoded field and check decoded aliases
+	err = state.Set("date", uint64(time.Date(2020, time.January, 1, 0, 1, 0, 0, time.UTC).UnixMilli())) // 1 minute after epoch
+	require.NoError(t, err)
+	msi, err = state.ToMsi()
+	require.NoError(t, err)
+
+	requireEqual(t, state, msi, "date", uint64(time.Date(2020, time.January, 1, 0, 1, 0, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "timestamp", uint64(time.Date(2020, time.January, 1, 0, 1, 0, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "datetime", uint64(time.Date(2020, time.January, 1, 0, 1, 0, 0, time.UTC).UnixMilli()))
+
+	// Check that raw field is updated accordingly
+	requireEqual(t, state, msi, "dateRaw", uint64(60000)) // 60 seconds in ms
+
+	// Update an alias of the decoded field and check decoded aliases
+	err = state.Set("timestamp", uint64(time.Date(2020, time.January, 1, 1, 0, 0, 0, time.UTC).UnixMilli()))
+	require.NoError(t, err)
+	msi, err = state.ToMsi()
+	require.NoError(t, err)
+
+	requireEqual(t, state, msi, "date", uint64(time.Date(2020, time.January, 1, 1, 0, 0, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "timestamp", uint64(time.Date(2020, time.January, 1, 1, 0, 0, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "datetime", uint64(time.Date(2020, time.January, 1, 1, 0, 0, 0, time.UTC).UnixMilli()))
+
+	// Check that raw field is updated accordingly
+	requireEqual(t, state, msi, "dateRaw", uint64(3600000)) // 3600 seconds in ms
+
+	// Update an alias of a regular field and check original field
+	err = state.Set("timestampRaw", 2000) // 2000 ms after epoch
+	require.NoError(t, err)
+	msi, err = state.ToMsi()
+	require.NoError(t, err)
+
+	requireEqual(t, state, msi, "timestampRaw", uint64(2000))
+	requireEqual(t, state, msi, "timestamp", uint64(time.Date(2020, time.January, 1, 0, 0, 2, 0, time.UTC).UnixMilli()))
+	requireEqual(t, state, msi, "datetimeRaw", uint64(2000))
+	requireEqual(t, state, msi, "datetime", uint64(time.Date(2020, time.January, 1, 0, 0, 2, 0, time.UTC).UnixMilli()))
 
 	// Check total number of keys
-	// Expected: temperature(+2 aliases), pressure(+2 aliases), status, temp_celsius(+2 aliases) = 11 keys
 	expectedKeys := []string{
 		"temperature", "temp", "t", // regular field + aliases
 		"pressure", "press", "p", // regular field + aliases
-		"status",                            // field without aliases
-		"temp_celsius", "temp_c", "celsius", // decoded field + aliases
+		"status",                                 // field without aliases
+		"dateRaw", "timestampRaw", "datetimeRaw", // raw field and aliases
+		"date", "timestamp", "datetime", // decoded field + aliases
 	}
 	require.Len(t, msi, len(expectedKeys))
 
@@ -714,8 +774,8 @@ func Test_StateField_InvalidAliasesType_Errors(t *testing.T) {
 func Test_DecodedStateField_Aliases_MsiConversion(t *testing.T) {
 	// Test that aliases are properly converted to/from MSI in DecodedStateField
 	originalDecodedField := DecodedStateField{
-		Name:    "decoded_temperature",
-		Aliases: []string{"decoded_temp", "d_temp", "temperature_decoded"},
+		Name:    "date",
+		Aliases: []string{"datetime", "timestamp", "ts"},
 		Decoder: &NumberToUnixTsMsDecoder{
 			From:   "temp_raw",
 			Year:   2020,
@@ -726,8 +786,8 @@ func Test_DecodedStateField_Aliases_MsiConversion(t *testing.T) {
 	// Convert to MSI
 	msi, err := originalDecodedField.ToMsi()
 	require.Nil(t, err)
-	require.Equal(t, "decoded_temperature", msi["name"])
-	require.Equal(t, []string{"decoded_temp", "d_temp", "temperature_decoded"}, msi["aliases"])
+	require.Equal(t, "date", msi["name"])
+	require.Equal(t, []string{"datetime", "timestamp", "ts"}, msi["aliases"])
 	require.Equal(t, string(NumberToUnixTsMsDecoderType), msi["decoder"])
 
 	// Convert back from MSI

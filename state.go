@@ -15,6 +15,7 @@ import (
 type State struct {
 	*frame.Frame              // Underlying binary data of the state
 	schema       *StateSchema // Schema used for decoding the binary data of the state
+	aliasMap     map[string]string
 }
 
 // CreateState initializes a new empty [State] based on the provided [StateSchema].
@@ -39,9 +40,25 @@ func CreateState(schema *StateSchema) (*State, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Build alias map for quick lookup to original field names
+	// (look for both regular and decoded fields)
+	aliasMap := make(map[string]string)
+	for _, f := range schema.GetFields() {
+		for _, alias := range f.Aliases {
+			aliasMap[alias] = f.Name
+		}
+	}
+	for _, df := range schema.GetDecodedFields() {
+		for _, alias := range df.Aliases {
+			aliasMap[alias] = df.Name
+		}
+	}
+
 	state := &State{
-		Frame:  f,
-		schema: schema,
+		Frame:    f,
+		schema:   schema,
+		aliasMap: aliasMap,
 	}
 	return state, nil
 }
@@ -66,7 +83,11 @@ func (e *State) GetSchema() *StateSchema {
 //
 // It first tries to retrieve the raw value from the [frame.Frame] and, if unsuccessful,
 // attempts to decode the field using the schema's decoding logic.
-func (f *State) Get(fieldName string) (value interface{}, err error) {
+func (f *State) Get(fieldName string) (value any, err error) {
+	// Look for an alias first
+	if originalName, ok := f.aliasMap[fieldName]; ok {
+		fieldName = originalName
+	}
 	v, err := f.Frame.Get(fieldName)
 	if err == nil {
 		field, exists := f.schema.fieldsMap[fieldName]
@@ -82,14 +103,26 @@ func (f *State) Get(fieldName string) (value interface{}, err error) {
 	if err == nil {
 		return v, nil
 	}
+
 	return nil, err
 }
 
 func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
+	if originalName, ok := f.aliasMap[fieldName]; ok {
+		fieldName = originalName
+	}
 	field, ok := f.schema.fieldsMap[fieldName]
 	if !ok {
-		return false, fmt.Errorf("field \"%s\" not found in schema", fieldName)
+		// Check if it's a decoded field
+		if _, ok := f.schema.decodedFields[fieldName]; ok {
+			oldValue, err := f.Get(fieldName)
+			if err != nil {
+				return false, err
+			}
+			return reflect.DeepEqual(oldValue, newValue), nil
+		}
 	}
+	// Its a regular field.
 	switch field.Type {
 	case T_FIXED:
 		oldValue, err := f.Get(fieldName)
@@ -117,11 +150,15 @@ func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
 // For T_BUFFER fields with range errors (oversized data), the value is still written to allow
 // truncation during encode/decode, but an error is returned to notify about potential data loss.
 func (f *State) Set(fieldName string, newValue any) error {
+	if originalName, ok := f.aliasMap[fieldName]; ok {
+		fieldName = originalName
+	}
+
 	// Handle decoded fields using their specific encoder
 	if df, ok := f.schema.decodedFields[fieldName]; ok {
 		return df.Decoder.Encode(f, newValue)
 	}
-	
+
 	// Find the field in the schema
 	field, ok := f.schema.fieldsMap[fieldName]
 	if !ok {
@@ -143,7 +180,7 @@ func (f *State) Set(fieldName string, newValue any) error {
 			return fmt.Errorf("field \"%s\": %v", fieldName, validationErr)
 		}
 	}
-	
+
 	// Convert fixed-point values to their internal representation
 	switch field.Type {
 	case T_FIXED:
@@ -198,26 +235,18 @@ func (e *State) ToMsi() (map[string]interface{}, error) {
 			return nil, err
 		}
 		data[f.Name] = v
-
-		// Add aliases for this field
-		if schemaField, exists := e.schema.fieldsMap[f.Name]; exists && len(schemaField.Aliases) > 0 {
-			for _, alias := range schemaField.Aliases {
-				data[alias] = v
-			}
-		}
 	}
-	for name, decodedField := range e.schema.decodedFields {
+	for name := range e.schema.decodedFields {
 		v, err := e.Get(name)
 		if err != nil {
 			return nil, err
 		}
 		data[name] = v
-
-		// Add aliases for this decoded field
-		if len(decodedField.Aliases) > 0 {
-			for _, alias := range decodedField.Aliases {
-				data[alias] = v
-			}
+	}
+	// Add aliases
+	for alias, originalName := range e.aliasMap {
+		if v, exists := data[originalName]; exists {
+			data[alias] = v
 		}
 	}
 	return data, nil
