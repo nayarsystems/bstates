@@ -68,8 +68,9 @@ func CreateState(schema *StateSchema) (*State, error) {
 func (e *State) GetCopy() *State {
 	fcopy := e.Frame.GetCopy()
 	ecopy := &State{
-		Frame:  fcopy,
-		schema: e.schema,
+		Frame:    fcopy,
+		schema:   e.schema,
+		aliasMap: e.aliasMap,
 	}
 	return ecopy
 }
