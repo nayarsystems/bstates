@@ -478,6 +478,7 @@ func Test_SameValue(t *testing.T) {
 				Type:         T_FIXED,
 				Size:         16,
 				Decimals:     2,
+				Aliases:      []string{"f_fixed_alias"},
 			},
 		},
 	})
@@ -507,6 +508,16 @@ func Test_SameValue(t *testing.T) {
 	same, err = state0.Same("f_fixed", -0.030281571796474065)
 	require.NoError(t, err)
 	require.False(t, same) // -0.02 != -0.03
+
+	// Call Same over non-existent field
+	same, err = state0.Same("non_existent", 123)
+	require.Error(t, err)
+	require.False(t, same)
+
+	// Call Same over alias of f_fixed
+	same, err = state0.Same("f_fixed_alias", -0.020281571796474065)
+	require.NoError(t, err)
+	require.True(t, same) // -0.02 == -0.02
 }
 
 func Test_StateFieldAliases(t *testing.T) {

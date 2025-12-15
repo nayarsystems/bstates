@@ -122,6 +122,7 @@ func (f *State) Same(fieldName string, newValue any) (same bool, err error) {
 			}
 			return reflect.DeepEqual(oldValue, newValue), nil
 		}
+		return false, fmt.Errorf("field \"%s\" not found in schema", fieldName)
 	}
 	// Its a regular field.
 	switch field.Type {
