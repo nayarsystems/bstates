@@ -1,6 +1,6 @@
 {
   "name": "bstates",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "This module exports some functions in WASM to work with bstates from a Node.js backend or a browser with JavaScript.",
   "homepage": "https://github.com/nayarsystems/bstates/tree/wasm/wasm#readme",
   "repository": {

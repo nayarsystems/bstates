@@ -16,7 +16,8 @@ export async function example(bs) {
             { "name": "3bitUnsignedNumTest", "type": "uint", "size": 2 },
             { "name": "boolTest", "type": "bool" },
             { "name": "4bitSignedNumTest", "type": "int", "size": 4 },
-            { "name": "message_buf", "type": "buffer", "size": 1024 }
+            { "name": "message_buf", "type": "buffer", "size": 1024 },
+            { "name": "ufixed16", "type": "ufixed", "size": 16, "decimals": 2 }
         ]
     };
 
@@ -39,6 +40,7 @@ export async function example(bs) {
     // Alternative to the previous line only in Node.js:
     // queue.push({ "3bitUnsignedNumTest": 4, "boolTest": false, "4bitSignedNumTest": -5, "message_buf": new Uint8Array(Buffer.from("Hello, World 4!", 'utf-8')) });
     queue.push({ "3bitUnsignedNumTest": 5, "boolTest": false, "4bitSignedNumTest": -4, "message_buf": "Hello, World 5!" });
+    queue.push({"3bitUnsignedNumTest": 6, "boolTest": true, "4bitSignedNumTest": -3, "message_buf": new TextEncoder().encode("Hello, World 7!"), "ufixed16": 140.32});
 
     console.log("Queue size:", queue.size());
 
