@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd
-	github.com/nayarsystems/bstates v0.9.6-0.20260203131733-44663d33c991
+	github.com/nayarsystems/bstates v0.9.6-0.20260203144405-4822b2c55c0e
 )
 
 require (

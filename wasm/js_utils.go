@@ -15,6 +15,11 @@ var array = js.Global().Get("Array")
 var object = js.Global().Get("Object")
 var JSON = js.Global().Get("JSON")
 
+// Example of using console from Go WASM (useful for debugging)
+// var console = js.Global().Get("console")
+// console.Call("log", "log message")
+// console.Call("error", "error message")
+
 func stateToJsValue(state *bstates.State) (js.Value, error) {
 	stateMsi, err := state.ToMsi()
 	if err != nil {
@@ -24,11 +29,18 @@ func stateToJsValue(state *bstates.State) (js.Value, error) {
 	stateJs := object.New()
 
 	for k, v := range stateMsi {
-		if data, ok := v.([]byte); ok {
-			dataJs := uint8Array.New(len(data))
-			js.CopyBytesToJS(dataJs, data)
+		switch v := v.(type) {
+		case []byte:
+			dataJs := uint8Array.New(len(v))
+			js.CopyBytesToJS(dataJs, v)
 			stateJs.Set(k, dataJs)
-		} else {
+		case []string:
+			arrJs := array.New(0)
+			for _, item := range v {
+				arrJs.Call("push", js.ValueOf(item))
+			}
+			stateJs.Set(k, arrJs)
+		default:
 			stateJs.Set(k, js.ValueOf(v))
 		}
 	}
