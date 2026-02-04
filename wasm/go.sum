@@ -3,8 +3,8 @@ github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd h1:4MeyWzia2q0jIePfPv28
 github.com/jaracil/ei v0.0.0-20170808175009-4f519a480ebd/go.mod h1:vY3hztyrLc9fGs8e9rvAhkYsSPhdryJUDlwnVDpYIfI=
 github.com/klauspost/compress v1.16.7 h1:2mk3MPGNzKyxErAw8YaohYh69+pa4sIQSC0fPGCFR9I=
 github.com/klauspost/compress v1.16.7/go.mod h1:ntbaceVETuRiXiv4DpjP66DpAtAGkEQskQzEyD//IeE=
-github.com/nayarsystems/bstates v0.9.6-0.20260203144405-4822b2c55c0e h1:9VowRazYth0RXbAy9bL3bVvhHQMD+RTdzdHWz4kxwDs=
-github.com/nayarsystems/bstates v0.9.6-0.20260203144405-4822b2c55c0e/go.mod h1:QCAUU+VsOBIDEoki7H62JDB8h+CJqZS2MA9rRWvspaM=
+github.com/nayarsystems/bstates v0.9.6-0.20260204095331-12ac577a2f77 h1:Nt6XAp8FYICrWS0leXDQiyvnFuUwkm/tadoRWVthUYE=
+github.com/nayarsystems/bstates v0.9.6-0.20260204095331-12ac577a2f77/go.mod h1:QCAUU+VsOBIDEoki7H62JDB8h+CJqZS2MA9rRWvspaM=
 github.com/nayarsystems/buffer v0.1.1 h1:ioRQ9aza2bEvPnSJKNjPcjXHhvjtDJEPOqHZQ58vtI0=
 github.com/nayarsystems/buffer v0.1.1/go.mod h1:O/MPQ7Ls2Feb/78IQ1qEdPYeUXX76I0YMfghSAUcprI=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
