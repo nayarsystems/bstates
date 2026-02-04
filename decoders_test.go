@@ -230,6 +230,13 @@ func Test_FlagsDecoder(t *testing.T) {
 	v, err = state.Get("status_flags")
 	require.Nil(t, err)
 	require.Equal(t, uint64(0), v)
+
+	// Test encoding from []any flags
+	err = state.Set("status", []any{"connected", "synced"})
+	require.NoError(t, err)
+	v, err = state.Get("status_flags")
+	require.NoError(t, err)
+	require.Equal(t, uint64(0b1010), v)
 }
 
 func Test_FlagsDecoder_NewDecoder(t *testing.T) {
@@ -318,12 +325,7 @@ func Test_FlagsDecoder_Errors(t *testing.T) {
 	}
 	err = decoder.Encode(state, "not_a_slice")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "expected []string, got string")
-
-	// Test encode with []any instead of []string
-	err = decoder.Encode(state, []any{"flag1"})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "expected []string, got []interface {}")
+	require.Contains(t, err.Error(), "expected []string or []any (with string values), got string")
 
 	// Test encode with unknown flag name
 	err = decoder.Encode(state, []string{"flag1", "unknown_flag"})

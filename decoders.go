@@ -306,10 +306,22 @@ func (d *FlagsDecoder) Encode(s *State, v any) error {
 		return fmt.Errorf("field \"%s\" not found in schema", d.From)
 	}
 
-	// Only accept []string
+	// Only accept []string or []any (with string values)
 	flags, ok := v.([]string)
 	if !ok {
-		return fmt.Errorf("expected []string, got %T", v)
+		if flagsAny, ok := v.([]any); ok {
+			// Convert []any to []string
+			flags = make([]string, len(flagsAny))
+			for i, fa := range flagsAny {
+				fs, ok := fa.(string)
+				if !ok {
+					return fmt.Errorf("expected []string, got []any with non-string value at index %d", i)
+				}
+				flags[i] = fs
+			}
+		} else {
+			return fmt.Errorf("expected []string or []any (with string values), got %T", v)
+		}
 	}
 
 	var fromValue uint64 = 0
