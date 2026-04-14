@@ -2,6 +2,7 @@
   "main": "main.js",
   "type": "module",
   "scripts": {
+    "prepare": "../setup-example.sh",
     "start": "../setup-example.sh && node main.js"
   }
 }

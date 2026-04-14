@@ -63,12 +63,13 @@ This command will:
 ## Examples
 
 The function defined in example.js is executed in each example. All examples follow these general steps:
-1. Navigate to the example directory in `examples` directory (e.g., examples/nodejs_es).
-2. Install dependencies:
+1. Make sure you have run `npm install` in the `wasm/` directory first (to build the WASM module and install dependencies).
+2. Navigate to the example directory in `examples` directory (e.g., examples/nodejs_es).
+3. Install dependencies:
 ```bash
 npm install
 ```
-3. Start the example:
+4. Start the example:
 ```bash
 npm start
 ```

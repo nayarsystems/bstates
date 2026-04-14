@@ -1,6 +1,7 @@
 { 
   "type": "module",
-  "scripts": { 
+  "scripts": {
+    "prepare": "../setup-example.sh",
     "start": "node ./start.js"
   }
   }
